@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name tu_dominio.com;
+
+    root /ruta/a/tu/sitio/web;
+
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+
+/*
+
+En este archivo de configuración:
+
+- listen: Define en qué puerto escuchará el servidor web. En este caso, 80 es
+ el puerto HTTP estándar.
+
+- server_name: Especifica el nombre de dominio al que responderá el servidor.
+ Puedes reemplazar tu_dominio.com con tu nombre de dominio real.
+
+- root: Indica la ruta del directorio donde se encuentran los archivos de tu sitio web.
+
+- index: Especifica los archivos que se buscarán por defecto al acceder al sitio web.
+ En este caso, se buscará index.html.
+
+- location: Define cómo Nginx manejará las solicitudes HTTP. En este ejemplo, se 
+ intentará servir el archivo solicitado ($uri) y si no se encuentra, devolverá un error 404.
+
+*/

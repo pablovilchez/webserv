@@ -1,0 +1,42 @@
+Algunos códigos de error de respuesta:
+
+
+(100-199) Respuestas informativas: Estos códigos indican que la solicitud
+ha sido recibida y el servidor está procesando la solicitud.
+
+100 Continue
+101 Switching Protocols
+102 Processing
+
+
+(200-299) Respuestas exitosas: Estos códigos indican que la solicitud fue
+recibida, entendida y aceptada correctamente.
+
+200 OK
+201 Created
+204 No Content
+
+
+(300-399) Redirecciones: Estos códigos indican que se necesita realizar
+una acción adicional para completar la solicitud.
+
+301 Moved Permanently
+302 Found (también conocido como Moved Temporarily)
+304 Not Modified
+
+
+(400-499) Errores del cliente: Estos códigos indican que hubo un error por
+parte del cliente al realizar la solicitud.
+
+400 Bad Request
+401 Unauthorized
+403 Forbidden
+404 Not Found
+
+
+(500-599) Errores del servidor: Estos códigos indican que hubo un error por
+parte del servidor al procesar la solicitud.
+
+500 Internal Server Error
+502 Bad Gateway
+503 Service Unavailable
