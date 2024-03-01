@@ -22,7 +22,7 @@ Para ordenar la información en formato JSON con jsoncpp:
 Linux:
  instalación:	sudo apt-get install libjsoncpp-dev
  include:		<json/json.h>
- flag:
-
+ flag: 			-ljsoncpp
+ 
 Si no compila porque sigue sin encontrar funciones JSON:
 sudo ln -s /usr/include/jsoncpp/json/ /usr/include/json
