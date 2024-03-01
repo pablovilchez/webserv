@@ -50,7 +50,7 @@ int main() {
     }
 
 
-    address.sin_family = AF_INET;
+    address.sin_family = PF_INET;
     address.sin_port = htons(PORT);
     address.sin_addr.s_addr = INADDR_ANY;
     // Binding socket to port
@@ -83,10 +83,11 @@ int main() {
 
         // Sending http response
 
-        
-        std::string htmlContent = readFile("library.html");
+
+
+        /* std::string htmlContent = readFile("library.html");
         std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
-        send(new_socket, response.c_str(), response.length(), 0);
+        send(new_socket, response.c_str(), response.length(), 0); */
 
         close(new_socket);
     }
