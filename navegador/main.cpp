@@ -1,72 +1,94 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <cstring>
+
+#define PORT 8080
+#define MAX_CONNECTIONS 3
+#define MAX_BUFFER_SIZE 1024
+
+
+std::string readFile(const char *filename)
+{
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open())
+    {
+        std::cerr << "Error: Unable to open file: " << filename << std::endl;
+        return "";
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
 
 int main() {
-    // Crear el socket
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket == -1) {
-        std::cerr << "Error al crear el socket" << std::endl;
-        return -1;
+    int server_fd, new_socket;
+    sockaddr_in address;
+    socklen_t addrlen = sizeof(address);
+    char buffer[MAX_BUFFER_SIZE];
+
+    // Creating socket fd
+    if((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Allow reuse of the adress
+    int opt = 1;
+    if(setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(&opt)) == -1)
+    {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
     }
 
-    // Configurar la dirección del servidor
-    sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(8080); // Puerto HTTP estándar
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
 
-    // Enlazar el socket a la dirección del servidor
-    if (bind(serverSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) == -1) {
-        std::cerr << "Error al enlazar el socket" << std::endl;
-        return -2;
+    address.sin_family = AF_INET;
+    address.sin_port = htons(PORT);
+    address.sin_addr.s_addr = INADDR_ANY;
+    // Binding socket to port
+    if(bind(server_fd, (sockaddr *)&address, addrlen) == -1)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
     }
 
-    // Escuchar por conexiones entrantes
-    if (listen(serverSocket, 5) == -1) {
-        std::cerr << "Error al escuchar por conexiones entrantes" << std::endl;
-        return -3;
+    // Listening
+    if(listen(server_fd, MAX_CONNECTIONS) == -1)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
     }
 
-    // Aceptar conexiones entrantes
-    sockaddr_in clientAddr;
-    socklen_t clientAddrSize = sizeof(clientAddr);
-    int clientSocket = accept(serverSocket, reinterpret_cast<sockaddr*>(&clientAddr), &clientAddrSize);
-    if (clientSocket == -1) {
-        std::cerr << "Error al aceptar la conexión entrante" << std::endl;
-        return -4;
+    while(true)
+    {
+        // Accepting incoming connections
+        if((new_socket = accept(server_fd, (sockaddr *)&address, &addrlen)) == -1)
+        {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        }
+
+        // Reading http request
+        memset(buffer, 0, MAX_BUFFER_SIZE);
+        recv(new_socket, buffer, MAX_BUFFER_SIZE, 0);
+        std::cout << "Request received: " << std::endl << buffer << std::endl;
+
+        // Sending http response
+
+        
+        std::string htmlContent = readFile("library.html");
+        std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
+        send(new_socket, response.c_str(), response.length(), 0);
+
+        close(new_socket);
     }
-
-    // Leer y procesar la solicitud HTTP
-    char buffer[1024];
-    ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-    if (bytesRead == -1) {
-        std::cerr << "Error al leer la solicitud HTTP" << std::endl;
-        close(clientSocket);
-        return -5;
-    }
-
-    // Imprimir la solicitud HTTP recibida
-    std::cout << "Solicitud HTTP recibida:" << std::endl;
-    std::cout.write(buffer, bytesRead);
-
-    // Enviar una respuesta HTTP de ejemplo
-    const char* response = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello World!";
-	//const char* response = "HTTP/1.1 401 Unauthorized";
-    ssize_t bytesSent = send(clientSocket, response, strlen(response), 0);
-    if (bytesSent == -1) {
-        std::cerr << "Error al enviar la respuesta HTTP" << std::endl;
-        close(clientSocket);
-        return -6;
-    }
-
-    // Cerrar el socket del cliente
-    close(clientSocket);
-
-    // Cerrar el socket del servidor
-    close(serverSocket);
-
     return 0;
 }
