@@ -3,7 +3,7 @@ Para hacer peticiones y capturar respuestas a API con cURL:
 Linux:
  instalación:	sudo apt install curl
 
- si siges teninendo porglemas con #include <curl/curl.h> ->
+ si siges teninendo problemas con #include <curl/curl.h> ->
  sudo apt-get install libcurl4-openssl-dev
 
  include:		<curl/curl.h>
