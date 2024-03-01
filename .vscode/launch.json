@@ -6,8 +6,8 @@
       "type": "lldb",
       "request": "launch",
       "args": [],
-      "cwd": "/Users/pvilchez/Desktop/webserv/navegador",
-      "program": "/Users/pvilchez/Desktop/webserv/navegador/build/Debug/outDebug"
+      "cwd": "/Users/pvilchez/Desktop/webserv/Pol/navegador",
+      "program": "/Users/pvilchez/Desktop/webserv/Pol/navegador/build/Debug/outDebug"
     }
   ]
 }
