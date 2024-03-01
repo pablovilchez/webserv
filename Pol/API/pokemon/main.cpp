@@ -4,7 +4,7 @@
 
 
 // Función callback para escribir los datos recibidos en la respuesta HTTP
-size_t WriteCallback(void *contents, size_t size, size_t nmemb, std::string *output)
+size_t writeCallback(void *contents, size_t size, size_t nmemb, std::string *output)
 {
     output->append((char *)contents, size * nmemb);
     return size * nmemb;
@@ -12,37 +12,36 @@ size_t WriteCallback(void *contents, size_t size, size_t nmemb, std::string *out
 
 int main(int argc, char **argv)
 {
-    CURL *curl;
-    CURLcode res;
-    std::string response;
-
     if (argc != 2)
     {
         std::cerr << "Error en el número de argumentos" << std::endl;
         exit(EXIT_FAILURE);
     }
-    std::string num = argv[1];
-	std::string url = "https://pokeapi.co/api/v2/pokemon/" + num;
+    CURL *curl;
+    CURLcode res;
+    std::string response;
+    const std::string num = argv[1];
+	const std::string url = "https://pokeapi.co/api/v2/pokemon/" + num;
 
     curl = curl_easy_init();
     if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         res = curl_easy_perform(curl);
 
-        if (res != CURLE_OK) {
-            std::cerr << "Error al realizar la solicitud: " << curl_easy_strerror(res) << std::endl;
-        }
-        else 
-        {
+
+        try {
+            res = curl_easy_perform(curl);
+            if (res != CURLE_OK) {
+                throw std::runtime_error(curl_easy_strerror(res));
+            }
+
             Json::Value root;
             Json::Reader reader;
             bool parsingSuccessful = reader.parse(response, root);
-            if (!parsingSuccessful)
-            {
-                //std::cerr << "Error al analizar el JSON: " << reader.getFormattedErrorMessages() << std::endl;
-                return 1;
+            if (!parsingSuccessful) {
+                throw std::runtime_error("Failed to parse JSON");
             }
 
             std::string name = root["name"].asString();
@@ -53,8 +52,20 @@ int main(int argc, char **argv)
             std::cout << "Altura del Pokémon: " << height << " decímetros" << std::endl;
             std::cout << "Peso del Pokémon: " << weight << " hectogramos" << std::endl;
             std::cout << "Tipo de Pokémon: " << type << std::endl;
-        }
-        curl_easy_cleanup(curl);
+
+            curl_easy_cleanup(curl);
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << std::endl;
+                curl_easy_cleanup(curl);
+                return -1;
+            }
+    }
+    else
+    {
+        std::cerr << "Error al inicializar cURL" << std::endl;
+        return -1;
     }
 
     return 0;
