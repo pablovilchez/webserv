@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#include "Request.hpp"
+
 #define PORT 8080
 #define MAX_CONNECTIONS 3
 #define MAX_BUFFER_SIZE 1024
@@ -81,13 +83,15 @@ int main() {
         recv(new_socket, buffer, MAX_BUFFER_SIZE, 0);
         std::cout << "Request received: " << std::endl << buffer << std::endl;
 
+        // Parse request
+        Request
+
+
+
         // Sending http response
-
-
-
-        /* std::string htmlContent = readFile("library.html");
+        std::string htmlContent = readFile("drive/library.html");
         std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
-        send(new_socket, response.c_str(), response.length(), 0); */
+        send(new_socket, response.c_str(), response.length(), 0);
 
         close(new_socket);
     }
