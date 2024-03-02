@@ -1,14 +1,5 @@
 #include "header.hpp"
 
-/*
-    The macros operate for fd_set type as follows:
-
-    FD_ZERO(fd_set *set) -- clears a file descriptor set
-    FD_SET(int fd, fd_set *set) -- adds fd to the set
-    FD_CLR(int fd, fd_set *set) -- removes fd from the set
-    FD_ISSET(int fd, fd_set *set) -- tests to see if fd is in the se
-*/
-
 int sendall(int s, char *buf, int *len)
 {
     int total = 0;        // how many bytes we've sent
@@ -58,6 +49,15 @@ void multyClient() {
             }
             perror("select");
         }
+
+        /*
+            The macros operate for fd_set type as follows:
+
+            FD_ZERO(fd_set *set) -- clears a file descriptor set
+            FD_SET(int fd, fd_set *set) -- adds fd to the set
+            FD_CLR(int fd, fd_set *set) -- removes fd from the set
+            FD_ISSET(int fd, fd_set *set) -- tests to see if fd is in the se
+        */
 
         for (int i = 0; i <= maxFd; ++i) {
             if (FD_ISSET(i, &copy)) { // Check if the file descriptor is in the set
