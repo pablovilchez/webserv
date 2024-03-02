@@ -28,7 +28,7 @@ int main() {
 		std::cerr << "setsockopt failed" << std::endl;
 		return -2;
 	}
-
+ 
 	// Cast the sockaddr_in pointer to sockaddr pointer
 	if(bind(listening, reinterpret_cast<sockaddr*>(&hint), sizeof(hint)) == -1) {
 		std::cerr << "Can't bind to IP/port" << std::endl;
