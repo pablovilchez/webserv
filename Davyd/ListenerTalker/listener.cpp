@@ -1,4 +1,4 @@
-
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,17 +38,26 @@ int main(void)
         exit(1);
     }
 
-    addr_len = sizeof(struct sockaddr);
-    if ((numbytes=recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-        (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-        perror("recvfrom");
-        exit(1);
-    }
 
-    printf("got packet from %s\n",inet_ntoa(their_addr.sin_addr));
-    printf("packet is %d bytes long\n",numbytes);
-    buf[numbytes] = '\0';
-    printf("packet contains \"%s\"\n",buf);
+    while(true) {
+        addr_len = sizeof(struct sockaddr);
+        memset(buf, 0, MAXBUFLEN);
+        if ((numbytes=recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
+            (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+            perror("recvfrom");
+            exit(1);
+        }
+
+        if (std::string(buf, 0, MAXBUFLEN) == "exit") {
+            std::cout << "Exiting..." << std::endl;
+            break;
+        }
+
+        printf("got packet from %s\n",inet_ntoa(their_addr.sin_addr));
+        printf("packet is %d bytes long\n",numbytes);
+        buf[numbytes] = '\0';
+        printf("packet contains \"%s\"\n",buf);
+    }
 
     close(sockfd);
 

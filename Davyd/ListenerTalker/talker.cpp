@@ -36,7 +36,8 @@ int main(int argc, char *argv[])
 
     their_addr.sin_family = AF_INET;     // host byte order
     their_addr.sin_port = htons(SERVERPORT); // short, network byte order
-    their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+    //their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+    their_addr.sin_addr.s_addr = INADDR_ANY;
     memset(&(their_addr.sin_zero), '\0', 8);  // zero the rest of the struct
 
     if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
