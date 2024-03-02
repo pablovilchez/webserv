@@ -19,9 +19,10 @@ int main(int argc, char *argv[])
     struct hostent *he;
     int numbytes;
     int broadcast = 1;
+    //char broadcast = '1'; // if that doesn't work, try this
 
     if (argc != 3) {
-        fprintf(stderr,"usage: talker hostname message\n");
+        fprintf(stderr,"usage: broadcaster hostname message\n");
         exit(1);
     }
 
@@ -35,13 +36,20 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    // this call is the difference between this program and talker.c:
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast,
+        sizeof(broadcast)) == -1) {
+        perror("setsockopt (SO_BROADCAST)");
+        exit(1);
+    }
+
     their_addr.sin_family = AF_INET;     // host byte order
     their_addr.sin_port = htons(SERVERPORT); // short, network byte order
     their_addr.sin_addr.s_addr = INADDR_ANY;
     memset(&(their_addr.sin_zero), '\0', 8);  // zero the rest of the struct
 
-    if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
-            reinterpret_cast<sockaddr*>(&their_addr), sizeof(struct sockaddr))) == -1) {
+    if ((numbytes=sendto(sockfd, argv[2], strlen(argv[2]), 0,
+             (struct sockaddr *)&their_addr, sizeof(struct sockaddr))) == -1) {
         perror("sendto");
         exit(1);
     }

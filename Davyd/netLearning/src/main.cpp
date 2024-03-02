@@ -17,7 +17,7 @@
 7 - Close socket
 */
 
-#define DEST_PORT 12000
+#define DEST_PORT 54000
 #define DEST_IP "127.0.0.1"
 
 int listening = 0;
@@ -35,6 +35,10 @@ int main() {
 		perror("setsockopt failed");
     	exit(1);
 	}
+	if (setsockopt(listening, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(int)) == -1) {
+		perror("setsockopt failed");
+    	exit(1);
+	}
 
 	// Bind the socket to a IP /port
     sockaddr_in hint;
@@ -48,10 +52,6 @@ int main() {
 		perror("Can't bind to IP/port");
 		exit(1);
 	}
-	/* 	if (connect(listening, reinterpret_cast<sockaddr*>(&hint), sizeof(struct sockaddr)) == -1) {
-		perror("Can't bind to IP/port");
-		exit(-4);
-	} */
 
 	//Mark the socket for listening in
 	if (listen(listening, SOMAXCONN) == -1) {

