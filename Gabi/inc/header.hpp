@@ -14,6 +14,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "Response.hpp"
 //int soloClient(int listening);
 int multyClient(int listening);
 

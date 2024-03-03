@@ -1,4 +1,5 @@
 #include "header.hpp"
+#include "Response.hpp"
 #define MAX_BUFFER_SIZE 1024
 #define PORT 8080
 

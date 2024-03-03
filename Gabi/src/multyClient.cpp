@@ -95,7 +95,7 @@ while (runningFlag) {
 					else if (receivedData.find("GET") == 0) {
 						if (receivedData.find("GET / HTTP/1.1") != std::string::npos)
 							std::cout << "Received HTTP request for main page:\n" << receivedData << std::endl;
-						std::string htmlContent = readFile("ex.html");
+						std::string htmlContent = readFile("ex2.html");
 						std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
 						send(i, response.c_str(), response.size(), 0);
 						// Close the client's socket
@@ -110,9 +110,13 @@ while (runningFlag) {
 						if (bodyStart != std::string::npos) {
 							// Extract the POST data from the request body
 							std::string postData = receivedData.substr(bodyStart + bodyDelimiter.length());
-
 							// Now you have the POST data, you can further parse it based on your needs
 							std::cout << "Received POST data:\n" << postData << std::endl;
+							std::ofstream outputFile("uploaded_image.jpg", std::ios::binary);
+							outputFile << postData;
+							outputFile.close();
+
+							std::cout << "File uploaded successfully." << std::endl;
 					}
 					}
 					else {
