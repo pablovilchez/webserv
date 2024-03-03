@@ -9,7 +9,7 @@ OBJ_PATH = obj
 
 HEADERS = -I ./
 
-SRC_FILES = main.cpp
+SRC_FILES = main.cpp Request.cpp Response.cpp
 
 SRC := $(SRC_FILES)
 OBJ = $(SRC:%.cpp=$(OBJ_PATH)/%.o)

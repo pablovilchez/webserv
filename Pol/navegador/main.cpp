@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "Request.hpp"
+#include "Response.hpp"
 
 #define PORT 8080
 #define MAX_CONNECTIONS 3
@@ -81,16 +82,22 @@ int main() {
         // Reading http request
         memset(buffer, 0, MAX_BUFFER_SIZE);
         recv(new_socket, buffer, MAX_BUFFER_SIZE, 0);
-        std::cout << "Request received: " << std::endl << buffer << std::endl;
 
         // Parse request
-        Request
-
-
+        Request req(buffer);
+        req.printData();
 
         // Sending http response
-        std::string htmlContent = readFile("drive/library.html");
-        std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
+        Response res(req);
+        std::string htmlContent;
+        std::string response;
+        if (req.getPath() == "/")
+        {
+            htmlContent = readFile("drive/library.html");
+            response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
+        }
+        else
+
         send(new_socket, response.c_str(), response.length(), 0);
 
         close(new_socket);
