@@ -6,7 +6,7 @@
 /*   By: pvilchez <pvilchez@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/03 01:03:16 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/03 11:42:47 by pvilchez         ###   ########.fr       */
+/*   Updated: 2024/03/03 12:13:25 by pvilchez         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,16 +22,18 @@ class Response
 		Response(const Request &request);
 		~Response();
 
-		void printData();
+		void printData() const;
 
-		std::string getHeader();
-		std::string getType();
-		std::string getContent();
+		std::string getHeader() const;
+		std::string getType() const;
+		std::string getContent() const;
+		std::string getPath() const;
 		
 	private:
-		std::string _header;
 		std::string _type;
+		std::string _header;
 		std::string _content;
+		std::string _path;
 };
 
 #endif

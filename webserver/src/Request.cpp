@@ -6,7 +6,7 @@
 /*   By: pvilchez <pvilchez@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/03 11:50:35 by pvilchez         ###   ########.fr       */
+/*   Updated: 2024/03/03 11:53:24 by pvilchez         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ Request::Request(const std::string &raw) : _raw(raw)
 
 Request::~Request() { }
 
-std::string Request::getRaw()
+std::string Request::getRaw() const
 {
 	return _raw;
 }

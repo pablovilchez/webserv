@@ -89,11 +89,13 @@ int main() {
 
         // Sending http response
         Response res(req);
+        
         std::string htmlContent;
         std::string response;
         if (req.getPath() == "/")
         {
-            htmlContent = readFile("drive/library.html");
+            std::string filePath = "../web/library.html";
+            htmlContent = readFile(filePath.c_str());
             response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
         }
         else
