@@ -95,7 +95,7 @@ int main() {
         std::string response;
         if (req.getPath() == "/")
         {
-            std::string filePath = "web/index.html";
+            std::string filePath = "web/library.html";
             htmlContent = readFile(filePath.c_str());
             response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
             std::cout << response << std::endl;

@@ -15,14 +15,15 @@ class Config
 		void printData();
 
 	private:
-		int _port;
-		std::string _host;
 		std::string _name;
-		std::string _root;
-		std::string _index;
-		//default error pages
+		int _port;
+		std::string _hostAddress;
+		std::string _errorPages;
 		int _maxBodySize;
-		std::map<std::string, std::set<std::string>> routes;
+
+		std::string _defaultFolder;
+		std::string _defaultFile;
+		std::map<std::string, std::set<std::string> > routes;
 
 };
 

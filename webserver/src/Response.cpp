@@ -4,7 +4,6 @@
 Response::Response(const Request &request)
 {
 	_type = request.getType();
-	
 }
 
 Response::~Response() { }
