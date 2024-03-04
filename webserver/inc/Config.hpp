@@ -14,9 +14,13 @@ class Config
 
 		void printData();
 
+		typedef std::map<int, std::string> ErrorPageMap;
+		std::string getErrorPage(int errorCode);
+
 	private:
-		std::string _name;
 		int _port;
+		std::string _serverName;
+		ErrorPageMap _errorPages;
 		std::string _hostAddress;
 		std::string _errorPages;
 		int _maxBodySize;
