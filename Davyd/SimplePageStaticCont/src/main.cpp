@@ -9,6 +9,18 @@ void loadWebPages() {
     web_pages["/about"] = "about.html";
     web_pages["/main.css"] = "main.css";
     web_pages["/script.js"] = "script.js";
+    web_pages["/download.jpeg"] = "download.jpeg";
+}
+
+void writeErrorPage(const std::string& content) {
+    std::ofstream file("error.html");
+    if (!file.is_open()) {
+        std::cerr << "Error: Unable to open error.html for writing." << std::endl;
+        return;
+    }
+
+    file << content;
+    file.close();
 }
 
 // Function to serve a web page.
@@ -86,7 +98,17 @@ int main() {
 
     loadWebPages();
 
-    std::cout << "Server is running on port " << PORT << std::endl;
+	char hostName[1024];
+    gethostname(hostName, 1024);
+    std::cout << "Server started on " << hostName << std::endl;
+
+	hostent* host = gethostbyname(hostName);
+	if (host == NULL) {
+		herror("gethostbyname");
+		exit(1);
+	}
+
+	std::cout << "IP Address: " << inet_ntoa(*(in_addr*)*host->h_addr_list) << std::endl;
 
     while (true) {
         // Accept a client connection.
@@ -112,10 +134,55 @@ int main() {
         std::string page;
         iss >> method >> page;
 
+        std::string errorTitle = "ERROR 404";
+        std::string errorText = "Page not found:()";
+
+        std::string error_html_content = "<!DOCTYPE html>\n"
+                                        "<html lang=\"en\">\n"
+                                        "<head>\n"
+                                        "    <meta charset=\"UTF-8\">\n"
+                                        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                                        "    <title>Error Page</title>\n"
+                                        "    <link rel=\"stylesheet\" href=\"./main.css\">\n"
+                                        "</head>\n"
+                                        "<body>\n"
+                                        "    <h1>" + errorTitle + "</h1>\n"
+                                        "    <h2>" + errorText + "</h2>\n"
+                                        "    <a href=\"/\">Back</a>\n"
+                                        "</body>\n"
+                                        "</html>\n";
+
+
+        writeErrorPage(error_html_content);
+
+        std::cout << "HERE-----------------\n "<< buffer << std::endl;
         if (method == "GET") {
             std::string page_path = (web_pages.find(page) != web_pages.end()) ? web_pages[page] : "error.html";
             servePage(client_socket, page_path);
-        } else {
+        }
+        else if (method == "POST") {
+            std::string post_data;
+            while (true) {
+                memset(buffer, 0, sizeof(buffer));
+                int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+                if (bytes_received <= 0) {
+                    break;
+                }
+            post_data.append(buffer, bytes_received);
+            }
+
+            // Process the POST data
+            // For example, you can parse it as URL-encoded data
+            // or as multipart form data, depending on the Content-Type header
+
+            // Send a response indicating success or failure
+            std::string response = "HTTP/1.1 200 OK\r\n";
+            response += "Content-Type: text/plain\r\n";
+            response += "\r\n";
+            response += "POST request received successfully!";
+            send(client_socket, response.c_str(), response.size(), 0);
+        }
+        else {
             std::string not_found_response = "HTTP/1.1 404 Not Found\r\n\r\n";
             send(client_socket, not_found_response.c_str(), not_found_response.size(), 0);
         }
