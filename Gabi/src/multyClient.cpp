@@ -84,7 +84,8 @@ while (runningFlag) {
 				} else {
 					std::string	receivedData(buf, bytesRecv);
 					std::string	response;
-
+					Request	receivedData2(buf);
+					//receivedData2.printData();
 					receivedData.erase(receivedData.find_last_not_of(" \n\r\t") + 1);
 					receivedData.erase(0, receivedData.find_first_not_of(" \n\r\t"));
 					if (receivedData == "exit") {
@@ -93,8 +94,8 @@ while (runningFlag) {
 						FD_CLR(i, &master);
 					}
 					else if (receivedData.find("GET") == 0) {
-						if (receivedData.find("GET / HTTP/1.1") != std::string::npos)
-							std::cout << "Received HTTP request for main page:\n" << receivedData << std::endl;
+	/* 					if (receivedData.find("GET / HTTP/1.1") != std::string::npos)
+							std::cout << "Received HTTP request for main page:\n" << receivedData << std::endl; */
 						std::string htmlContent = readFile("ex2.html");
 						std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
 						send(i, response.c_str(), response.size(), 0);
@@ -104,6 +105,8 @@ while (runningFlag) {
 						FD_CLR(i, &master);
 					}
 					else if (receivedData.find("POST") == 0) {
+						receivedData2.printData();
+						
 						std::string bodyDelimiter = "\r\n\r\n";
 						size_t bodyStart = receivedData.find(bodyDelimiter);
 
@@ -111,17 +114,17 @@ while (runningFlag) {
 							// Extract the POST data from the request body
 							std::string postData = receivedData.substr(bodyStart + bodyDelimiter.length());
 							// Now you have the POST data, you can further parse it based on your needs
-							std::cout << "Received POST data:\n" << postData << std::endl;
-							std::ofstream outputFile("uploaded_image.jpg", std::ios::binary);
+							//std::cout << "Received POST data:\n" << postData << std::endl;
+/* 							std::ofstream outputFile("uploaded_image.jpg", std::ios::binary);
 							outputFile << postData;
-							outputFile.close();
+							outputFile.close(); */
 
-							std::cout << "File uploaded successfully." << std::endl;
+							//std::cout << "File uploaded successfully." << std::endl;
 					}
 					}
 					else {
 						// Echo received data back to the client
-						std::cout << "Received: " << receivedData << std::endl;
+						//std::cout << "Received: " << receivedData << std::endl;
 						send(i, response.c_str(), response.size(), 0);
 					}
 				}
