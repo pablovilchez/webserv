@@ -2,29 +2,31 @@
 #define SERVER_HPP
 
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <csignal>
 #include <stdio.h>
-#include <sys/types.h>
+#include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <vector>
+#include <map>
+#include <sys/wait.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <string>
-#include <csignal>
 #include <poll.h>
-#include <vector>
-#include <signal.h>
-#include <sys/wait.h>
 
 class Server {
 	private:
-		int					_server_socket;
+		int					_listen_sock;
 		struct sockaddr_in	_server_addr;
+		std::vector<pollfd> _poll_fds;
 
-
-		void _setServerSocket();
 		void _fillServerAddr();
-		void _printServerInfo();
 		void _startServerLoop();
 
 	public:
