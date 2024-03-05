@@ -47,14 +47,15 @@ void servePage(int client_socket, const std::string& page_path) {
     }
 
     response << "HTTP/1.1 200 OK\r\n";
-    response << "Content-Type: " << content_type << "\r\n\r\n";
-
+    response << "Content-Type: " << content_type << "\r\n";
+    response << "Close: Connection\r\n\r\n";
 
     char buffer[1024];
     while (file.read(buffer, sizeof(buffer)).gcount() > 0) {
         response.write(buffer, file.gcount());
     }
 
+    std::cout << "Response:__________ \n" << response.str() << std::endl;
     send(client_socket, response.str().c_str(), response.str().size(), 0);
 }
 
@@ -155,30 +156,15 @@ int main() {
 
         writeErrorPage(error_html_content);
 
-        std::cout << "HERE-----------------\n "<< buffer << std::endl;
+        std::cout << "Request:___________________\n"<< buffer << std::endl;
         if (method == "GET") {
             std::string page_path = (web_pages.find(page) != web_pages.end()) ? web_pages[page] : "error.html";
             servePage(client_socket, page_path);
         }
         else if (method == "POST") {
-            std::string post_data;
-            while (true) {
-                memset(buffer, 0, sizeof(buffer));
-                int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
-                if (bytes_received <= 0) {
-                    break;
-                }
-            post_data.append(buffer, bytes_received);
-            }
-
-            // Process the POST data
-            // For example, you can parse it as URL-encoded data
-            // or as multipart form data, depending on the Content-Type header
-
-            // Send a response indicating success or failure
-            std::string response = "HTTP/1.1 200 OK\r\n";
-            response += "Content-Type: text/plain\r\n";
-            response += "\r\n";
+            std::string response = "HTTP/1.1 200 OK\r\n"; // Response line
+            response += "Content-Type: text/plain\r\n"; // Headers
+            response += "\r\n"; // An empty line indicates the end of the headers
             response += "POST request received successfully!";
             send(client_socket, response.c_str(), response.size(), 0);
         }
