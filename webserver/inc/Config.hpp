@@ -5,31 +5,33 @@
 # include <vector>
 # include <set>
 # include <map>
+# include "Location.hpp"
 
 class Config
 {
 	public:
+		typedef std::map<int, std::string> ErrorPageMap;
+
 		Config();
+		Config(const std::string &config);
 		~Config();
 
 		void printData();
 
-		typedef std::map<int, std::string> ErrorPageMap;
-		typedef std::map<std::string, std::set<std::string> > RoutesMap;
-		std::string getErrorPage(int errorCode);
+		void setLocation(Location *location);
+
+		int getPort() const;
+		std::string getServerName() const;
+		std::string getErrorPage(const int &errorCode) const;
+		int getMaxSize() const;
+		const Location &getLocation(const std::string &location) const;
 
 	private:
-		int				_port;
-		std::string		_serverName;
-		ErrorPageMap	_errorPages;
-		std::string		_hostAddress;
-		std::string		_errorPages;
-		int				_maxBodySize;
-
-		std::string		_defaultFolder;
-		std::string		_defaultFile;
-		RoutesMap		_routes;
-
+		int						_port;
+		std::string				_serverName;
+		ErrorPageMap			_errorPages;
+		int						_maxSize;
+		std::vector<Location>	_locations;
 };
 
 #endif

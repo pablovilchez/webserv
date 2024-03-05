@@ -1,8 +1,8 @@
 user       www www;  ## Default: nobody
 worker_processes  5;  ## Default: 1
 error_log  logs/error.log;
-pid        logs/nginx.pid;
-worker_rlimit_nofile 8192;
+pid     t_nofile   logs/nginx.pid;
+worker_rlimi 8192;
 
 events
 {

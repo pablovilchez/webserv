@@ -7,7 +7,7 @@ REMOVE = rm -rf
 
 OBJ_PATH = obj
 
-HEADERS = -I ./ -lcurl -ljsoncpp
+HEADERS = -I /Users/pvilchez/.brew/opt/jsoncpp/include -lcurl -ljsoncpp
 
 SRC_FILES = main.cpp
 
