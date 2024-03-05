@@ -13,6 +13,8 @@
 #include "Request.hpp"
 #include "Response.hpp"
 
+#include "Config.hpp"
+
 #define PORT 8080
 #define MAX_CONNECTIONS 3
 #define MAX_BUFFER_SIZE 1024
@@ -37,6 +39,9 @@ int main() {
     sockaddr_in address;
     socklen_t addrlen = sizeof(address);
     char buffer[MAX_BUFFER_SIZE];
+
+    Config conf;
+    conf.printData();
 
     // Creating socket fd
     if((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1)

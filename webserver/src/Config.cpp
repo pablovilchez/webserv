@@ -1,9 +1,10 @@
 #include "Config.hpp"
 
 Config::Config() {
-	_port = 8080;
+	_port.insert(8080);
 	_serverName = "default_server";
-	//_errorPages = {{400, "var/www/error/400.html"}};
+	_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
+	_maxSize = 1024 * 10;
 	Location *newLocation = new Location();
 	setLocation(newLocation);
 }
@@ -17,14 +18,26 @@ Config::~Config() {
 }
 
 void Config::printData() {
-
+	std::cout << "Server name: " << _serverName << std::endl;
+	std::cout << "Ports:       ";
+	for(std::set<int>::iterator it = _port.begin(); it != _port.end(); it++)
+		std::cout << *it << "  ";
+	std::cout << std::endl;
+	std::cout << "Error pages: ";
+	std::map<int, std::string>::iterator it;
+	for(it = _errorPages.begin(); it != _errorPages.end(); it++)
+		std::cout << it->first << "  ";
+	std::cout << std::endl;
+	std::cout << "Max Size:    " << _maxSize << std::endl;
+	for(std::vector<Location>::iterator it = _locations.begin(); it != _locations.end(); it++)
+		it->printData();
 }
 
 void Config::setLocation(Location *location) {
 	_locations.push_back(*location);
 }
 
-int Config::getPort() const {
+std::set<int> Config::getPort() const {
 	return _port;
 }
 

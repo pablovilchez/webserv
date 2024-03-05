@@ -10,8 +10,11 @@ class Location
 {
 	public:
 		Location();
-		Location(const std::string &path);
+		Location(const std::string &data);
 		~Location();
+
+		void parseData(const std::string &data);
+		void printData() const;
 
 		void setAcceptedMethod(const std::string &method);
 		void setLocation(const std::string &path);

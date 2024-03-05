@@ -10,14 +10,43 @@ Location::Location() {
 	_directoryListing = false;
 }
 
-Location::Location(const std::string &path) {
-	if(path == "null")
-		_location = "";
-	else
-		_location = path;
+Location::Location(const std::string &data) {
+	parseData(data);
 }
 
 Location::~Location() { }
+
+void Location::parseData(const std::string &data) {
+	
+}
+
+void Location::printData() const {
+	std::cout << "Location:  " << _location << std::endl;
+	std::cout << "{" << std::endl;
+	std::cout << "  Accepted methods: ";
+	std::set<std::string>::iterator it;
+	for(it = _acceptedMethods.begin(); it != _acceptedMethods.end(); it++)
+		std::cout << *it << "  ";
+	std::cout << std::endl;
+	std::cout << "  Root:  " << _root << std::endl;
+	std::cout << "  Index:  ";
+	for(it = _index.begin(); it != _index.end(); it++)
+		std::cout << *it << "  ";
+	std::cout << std::endl;
+	std::cout << "  Directory listing:  " << (_directoryListing ? "ON" : "OFF");
+	std::cout << std::endl;
+	std::cout << "  CGI extensions:  ";
+	std::map<std::string, std::string>::const_iterator it_2;
+	for(it_2 = _cgiExtension.begin(); it_2 != _cgiExtension.end(); it_2++)
+		std::cout << it_2->first << "  ";
+	std::cout << std::endl;
+	std::cout << "  Return:  ";
+	std::map<int, std::string>::const_iterator it_3;
+	it_3 = _return.begin();
+	if(it_3 != _return.end())
+		std::cout << it_3->first;
+	std::cout << std::endl << "}" << std::endl;
+}
 
 // SETTERS ---------------------------------
 void Location::setLocation(const std::string &path) {
