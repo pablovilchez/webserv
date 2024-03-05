@@ -52,7 +52,6 @@ void Server::_printServerInfo() {
 }
 
 void Server::_startServerLoop() {
-	std::vector<struct pollfd> _fds[MAX_EVENTS];
 
 }
 
