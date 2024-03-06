@@ -1,6 +1,10 @@
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
+# ifndef DEBUG
+#  define DEBUG false
+# endif
+
 # include <iostream>
 # include <set>
 # include <map>

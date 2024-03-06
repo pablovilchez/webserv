@@ -8,7 +8,17 @@ WebServer::WebServer(const std::string &file) {
 }
 
 WebServer::~WebServer() { }
-		
+
+
+bool isComment(const std::string &line) {
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		if (!std::isspace(line[i]))
+			return line[i] == '#';
+	}
+	return true;
+}
+
 void WebServer::parseConfigFile(const std::string &file) {
 	std::ifstream fileStream(file);
 	std::string line;
@@ -23,7 +33,8 @@ void WebServer::parseConfigFile(const std::string &file) {
 	}
 	while (std::getline(fileStream, line))
 	{
-		
+		if (isComment(line))
+			continue;
 		if (line.find("server") != std::string::npos && line.find("{") != std::string::npos)
 		{
 			buffer = line;
@@ -43,5 +54,5 @@ void WebServer::parseConfigFile(const std::string &file) {
 		}
 	}
 	fileStream.close();
-	std::cout << servers << " servers created." << std::endl;
+	if(DEBUG) std::cout << "WebServer:" << servers << " servers created" << std::endl;
 }

@@ -1,6 +1,10 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
+# ifndef DEBUG
+#  define DEBUG false
+# endif
+
 # include "Config.hpp"
 
 class Server

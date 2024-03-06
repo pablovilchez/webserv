@@ -41,9 +41,7 @@ int main() {
     socklen_t addrlen = sizeof(address);
     char buffer[MAX_BUFFER_SIZE];
 
-    Config conf;
-    conf.printData();
-    //WebServer server("config.conf");
+    WebServer server("config.conf");
 
     // Creating socket fd
     if((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1)

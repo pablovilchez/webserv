@@ -1,6 +1,10 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
+# ifndef DEBUG
+#  define DEBUG false
+# endif
+
 # include <iostream>
 
 class Request

@@ -1,6 +1,10 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
+# ifndef DEBUG
+#  define DEBUG false
+# endif
+
 # include <iostream>
 # include "Request.hpp"
 

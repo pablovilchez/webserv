@@ -1,6 +1,10 @@
 #ifndef CONFIG_HPP
 # define CONFIG_HPP
 
+# ifndef DEBUG
+#  define DEBUG false
+# endif
+
 # include <iostream>
 # include <vector>
 # include <set>

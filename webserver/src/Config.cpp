@@ -10,7 +10,8 @@ Config::Config() {
 }
 
 Config::Config(const std::string &config) {
-	(void)config;
+	std::cout << "Received config:" << std::endl;
+	std::cout << config << std::endl << std::endl;
 }
 
 Config::~Config() {
