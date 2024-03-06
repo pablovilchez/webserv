@@ -17,7 +17,7 @@ Location::Location(const std::string &data) {
 Location::~Location() { }
 
 void Location::parseData(const std::string &data) {
-	
+	(void)data;
 }
 
 void Location::printData() const {

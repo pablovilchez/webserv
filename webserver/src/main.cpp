@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <fstream>
 
+#include "WebServer.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 
@@ -42,6 +43,7 @@ int main() {
 
     Config conf;
     conf.printData();
+    //WebServer server("config.conf");
 
     // Creating socket fd
     if((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1)

@@ -12,9 +12,9 @@ WebServer::~WebServer() { }
 void WebServer::parseConfigFile(const std::string &file) {
 	std::ifstream fileStream(file);
 	std::string line;
-	std::string serverConf;
-	int server = 0;
-	int i = 1;
+	std::string buffer;
+	int servers = 0;
+	int i = 0;
 
 	if (!fileStream.is_open())
 	{
@@ -23,23 +23,25 @@ void WebServer::parseConfigFile(const std::string &file) {
 	}
 	while (std::getline(fileStream, line))
 	{
-		serverConf = "";
-		if (line.find("server") != std::string::npos)
+		
+		if (line.find("server") != std::string::npos && line.find("{") != std::string::npos)
 		{
-			while (std::getline(fileStream, line) && !line.find("{"))
-				serverConf += line;
-			while (std::getline(fileStream, line))
+			buffer = line;
+			buffer += "\n";
+			i = 1;
+			while (std::getline(fileStream, line) && i > 0)
 			{
-				serverConf += line;
+				buffer += line;
+				buffer += "\n";
 				if (line.find("{") != std::string::npos)
 					i++;
 				if (line.find("}") != std::string::npos)
 					i--;
-				if (i == 0)
-					break;
 			}
+			_servers.push_back(Server(buffer));
+			servers++;
 		}
-		_servers.push_back(Server(serverConf));
 	}
 	fileStream.close();
+	std::cout << servers << " servers created." << std::endl;
 }
