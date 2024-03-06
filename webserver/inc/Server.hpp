@@ -1,17 +1,23 @@
 #ifndef SERVER_HPP
-# define SERVER_HPP
+#define SERVER_HPP
 
-# include "Config.hpp"
+#include "WebServer.hpp"
 
-class Server
-{
+class Server {
+	private:
+		int					_listen_sock;
+		struct sockaddr_in	_server_addr;
+		std::vector<pollfd> _poll_fds;
+
+		void _fillServerAddr();
+		void _startServerLoop();
+
 	public:
 		Server();
-		Server(const std::string &config);
+		Server(Server const &src);
+		Server &operator=(Server const &src);
 		~Server();
-
-	private:
-		Config _config;
+		void startServer();
 };
 
 #endif

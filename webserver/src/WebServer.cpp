@@ -2,13 +2,13 @@
 
 WebServer::WebServer() { }
 
-WebServer::WebServer(const std::string &file) {
+/* WebServer::WebServer(const std::string &file) {
 	parseConfigFile(file);
 
 }
 
 WebServer::~WebServer() { }
-		
+
 void WebServer::parseConfigFile(const std::string &file) {
 	std::ifstream fileStream(file);
 	std::string line;
@@ -23,7 +23,7 @@ void WebServer::parseConfigFile(const std::string &file) {
 	}
 	while (std::getline(fileStream, line))
 	{
-		
+
 		if (line.find("server") != std::string::npos && line.find("{") != std::string::npos)
 		{
 			buffer = line;
@@ -45,3 +45,4 @@ void WebServer::parseConfigFile(const std::string &file) {
 	fileStream.close();
 	std::cout << servers << " servers created." << std::endl;
 }
+ */

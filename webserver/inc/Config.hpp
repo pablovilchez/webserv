@@ -1,11 +1,8 @@
 #ifndef CONFIG_HPP
-# define CONFIG_HPP
+#define CONFIG_HPP
 
-# include <iostream>
-# include <vector>
-# include <set>
-# include <map>
-# include "Location.hpp"
+#include "libraries.hpp"
+#include "Location.hpp"
 
 class Config
 {

@@ -1,7 +1,7 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
-# include <iostream>
+#include "libraries.hpp"
 
 class Request
 {
@@ -11,7 +11,7 @@ class Request
 
 		void parseContent();
 		void printData();
-		
+
 		std::string getRaw() const;
 		std::string getHeader() const;
 		std::string getType() const;

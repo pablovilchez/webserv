@@ -1,5 +1,4 @@
 #include "Request.hpp"
-#include <iostream>
 
 Request::Request(const std::string &raw) : _raw(raw)
 {
@@ -46,7 +45,7 @@ void Request::parseContent()
 		break;
     }
 	size_t dotPos = _path.rfind('.');
-    if (dotPos != std::string::npos) 
+    if (dotPos != std::string::npos)
 		_extension = _path.substr(dotPos + 1);
 }
 

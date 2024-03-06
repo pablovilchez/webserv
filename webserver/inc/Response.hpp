@@ -1,7 +1,7 @@
 #ifndef RESPONSE_HPP
-# define RESPONSE_HPP
+#define RESPONSE_HPP
 
-# include <iostream>
+# include "libraries.hpp"
 # include "Request.hpp"
 
 class Response
@@ -16,7 +16,7 @@ class Response
 		std::string getType() const;
 		std::string getContent() const;
 		std::string getPath() const;
-		
+
 	private:
 		std::string _type;
 		std::string _header;
