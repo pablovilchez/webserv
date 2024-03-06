@@ -1,4 +1,5 @@
 #include "header.hpp"
+#include "Request.hpp"
 
 std::string readFile(const char *filename)
 {
@@ -84,7 +85,7 @@ while (runningFlag) {
 				} else {
 					std::string	receivedData(buf, bytesRecv);
 					std::string	response;
-					Request	receivedData2(buf);
+					Request	receivedData2(buf, i);
 					//receivedData2.printData();
 					receivedData.erase(receivedData.find_last_not_of(" \n\r\t") + 1);
 					receivedData.erase(0, receivedData.find_first_not_of(" \n\r\t"));
@@ -105,7 +106,7 @@ while (runningFlag) {
 						FD_CLR(i, &master);
 					}
 					else if (receivedData.find("POST") == 0) {
-						receivedData2.printData();
+					//	receivedData2.printData();
 						
 						std::string bodyDelimiter = "\r\n\r\n";
 						size_t bodyStart = receivedData.find(bodyDelimiter);

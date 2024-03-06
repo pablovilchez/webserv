@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:12:49 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/05 16:48:39 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/06 11:41:01 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,15 +16,15 @@
 # include <iostream>
 #include <fstream>
 #include <unistd.h>
-
+#include <header.hpp>
 class Request
 {
 	public:
-		Request(const std::string &raw);
+		Request(const std::string &raw, int clientSocket);
 		~Request();
 
-		void	parseContent();
-		void	parseBody();
+		void	parseContent(int clientSocket);
+		void	parseBody(int clientSocket);
 		void	printData();
 		
 		std::string getRaw() const;
