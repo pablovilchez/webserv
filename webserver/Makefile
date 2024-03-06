@@ -5,10 +5,8 @@ CC = c++ #-fsanitize=address
 FLAGS = -Wall -Wextra -Werror -std=c++98
 REMOVE = rm -rf
 
-ifdef DEBUG
-FLAGS += -DDEBUG=true
-else
-FLAGS += -DDEBUG=false
+ifeq ($(DEBUG), true)
+	FLAGS += -DDEBUG
 endif
 
 INC_PATH = inc

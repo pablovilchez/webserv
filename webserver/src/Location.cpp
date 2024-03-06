@@ -1,27 +1,102 @@
 #include "Location.hpp"
 
-Location::Location() {
-	_location = "/default";
-	_acceptedMethods.insert("GET");
-	_acceptedMethods.insert("POST");
-	_acceptedMethods.insert("DELETE");
-	_root = "var/default";
-	_index.insert("index.html");
-	_directoryListing = false;
+Location::Location() : _directoryListing(false) {
+	defaultConfig();
 }
 
-Location::Location(const std::string &data) {
-	parseData(data);
+void Location::defaultConfig() {
+	if(_location.empty())
+		_location= "/default";
+	if(_acceptedMethods.empty())
+	{
+		_acceptedMethods.insert("GET");
+		_acceptedMethods.insert("POST");
+		_acceptedMethods.insert("DELETE");
+	}
+	if(_root.empty())
+		_root = "var/default";
+	if(_index.empty())
+		_index.insert("index.html");
+}
+
+bool isComment(const std::string &line) {
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		if (!std::isspace(line[i]))
+			return line[i] == '#';
+	}
+	return true;
+}
+
+void Location::parseConfig(const std::string &config) {
+	std::istringstream stream(config);
+	std::string line;
+	std::string key;
+	std::string value;
+
+	std::getline(stream, line);
+	while (std::getline(stream, line))
+	{
+		if (isComment(line))
+			continue;
+		std::istringstream lineStream(line);
+		lineStream >> key;
+		if (key == "server_name")
+		{
+			lineStream >> value;
+			_serverName = value;
+		}
+		else if (key == "listen")
+		{
+			while (lineStream >> value)
+			{
+				std::set<int>::iterator it = _port.find(std::stoi(value));
+				if(it == _port.end())
+					_port.insert(*it);
+			}
+		}
+		else if (key == "client_max_body_size")
+		{
+			lineStream >> value;
+			_maxSize = std::stoi(value);
+			if(value.find("M") != std::string::npos)
+				_maxSize *= 1024 * 1024;
+			else if(value.find("K") != std::string::npos)
+				_maxSize *= 1024;
+		}
+		else if (key == "error_page")
+		{
+			int code;
+			lineStream >> code;
+			lineStream >> value;
+			_errorPages.insert(std::make_pair(code, value));
+		}
+		else if (key == "location")
+		{
+			std::string locatConfig;
+			while(lineStream >> key && key.find("}") == std::string::npos)
+			{
+				locatConfig += key;
+				locatConfig += "\n";
+			}
+			Location *newLocation = new Location(locatConfig);
+		}
+		else
+		{
+			std::cerr << "Error: Unknown key: " << key << std::endl;
+		}
+	}
+	defaultConfig();
+}
+
+Location::Location(const std::string &config) : _directoryListing(false) {
+	parseConfig(config);
 }
 
 Location::~Location() { }
 
-void Location::parseData(const std::string &data) {
-	(void)data;
-}
-
 void Location::printData() const {
-	std::cout << "Location:  " << _location << std::endl;
+	std::cout << "Location  " << _location << std::endl;
 	std::cout << "{" << std::endl;
 	std::cout << "  Accepted methods: ";
 	std::set<std::string>::iterator it;
@@ -48,6 +123,7 @@ void Location::printData() const {
 	std::cout << std::endl << "}" << std::endl;
 }
 
+/* 
 // SETTERS ---------------------------------
 void Location::setLocation(const std::string &path) {
 	_location = path;
@@ -76,6 +152,8 @@ void Location::setCgiExtension(const std::string &extension, const std::string &
 void Location::setReturn(const int &httpCode, const std::string &redir) {
 	_return[httpCode] = redir;
 }
+ */
+
 
 // GETTERS ---------------------------------
 std::string Location::getLocation() const {

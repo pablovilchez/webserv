@@ -20,7 +20,7 @@ bool isComment(const std::string &line) {
 }
 
 void WebServer::parseConfigFile(const std::string &file) {
-	std::ifstream fileStream(file);
+	std::ifstream fileStream(file.c_str());
 	std::string line;
 	std::string buffer;
 	int servers = 0;

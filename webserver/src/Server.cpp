@@ -2,8 +2,7 @@
 
 Server::Server() { }
 
-Server::Server(const std::string &config) : _config(config) {
-}
+Server::Server(const std::string &config) : _config(config) { }
 
 Server::~Server() { }
 

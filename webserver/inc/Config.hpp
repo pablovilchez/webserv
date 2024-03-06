@@ -9,6 +9,8 @@
 # include <vector>
 # include <set>
 # include <map>
+# include <string>
+# include <sstream>
 # include "Location.hpp"
 
 class Config
@@ -18,6 +20,8 @@ class Config
 		Config(const std::string &config);
 		~Config();
 
+		void defaultConfig();
+		void parseConfig(const std::string &config);
 		void printData();
 
 		void setLocation(Location *location);
