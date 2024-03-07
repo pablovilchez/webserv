@@ -89,6 +89,7 @@ void Config::parseConfig(const std::string &config) {
 
 Config::Config(const std::string &config) {
 	parseConfig(config);
+	if (DEBUG) printData();
 }
 
 Config::~Config() {

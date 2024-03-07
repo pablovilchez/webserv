@@ -36,12 +36,16 @@ std::string readFile(const char *filename)
 
 
 int main() {
+    
+    WebServer server("config.conf");
+    
+/*
+
     int server_fd, new_socket;
     sockaddr_in address;
     socklen_t addrlen = sizeof(address);
     char buffer[MAX_BUFFER_SIZE];
 
-    WebServer server("config.conf");
 
     // Creating socket fd
     if((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
@@ -111,5 +115,7 @@ int main() {
 
         close(new_socket);
     }
+
+    */
     return 0;
 }

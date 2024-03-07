@@ -34,53 +34,56 @@ void Location::parseConfig(const std::string &config) {
 	std::string key;
 	std::string value;
 
-	std::getline(stream, line);
 	while (std::getline(stream, line))
 	{
 		if (isComment(line))
 			continue;
 		std::istringstream lineStream(line);
 		lineStream >> key;
-		if (key == "server_name")
+		if (key == "location")
 		{
 			lineStream >> value;
-			_serverName = value;
+			_location = value;
 		}
-		else if (key == "listen")
+		if (key == "root")
+		{
+			lineStream >> value;
+			_root = value;
+		}
+		if (key == "autoindex")
+		{
+			lineStream >> value;
+			if(value == "on")
+				_directoryListing = true;
+			else
+				_directoryListing = false;
+		}
+		else if (key == "index")
 		{
 			while (lineStream >> value)
-			{
-				std::set<int>::iterator it = _port.find(std::stoi(value));
-				if(it == _port.end())
-					_port.insert(*it);
-			}
+				_index.insert(value);
 		}
-		else if (key == "client_max_body_size")
+		else if (key == "allow_methods")
 		{
-			lineStream >> value;
-			_maxSize = std::stoi(value);
-			if(value.find("M") != std::string::npos)
-				_maxSize *= 1024 * 1024;
-			else if(value.find("K") != std::string::npos)
-				_maxSize *= 1024;
+			while (lineStream >> value)
+				_acceptedMethods.insert(value);
 		}
-		else if (key == "error_page")
+		else if (key == "return")
 		{
 			int code;
 			lineStream >> code;
 			lineStream >> value;
-			_errorPages.insert(std::make_pair(code, value));
+			_return.insert(std::make_pair(code, value));
 		}
-		else if (key == "location")
+		else if (key == "cgi_extension")
 		{
-			std::string locatConfig;
-			while(lineStream >> key && key.find("}") == std::string::npos)
-			{
-				locatConfig += key;
-				locatConfig += "\n";
-			}
-			Location *newLocation = new Location(locatConfig);
+			lineStream >> value;
+			std::string extension = value;
+			lineStream >> value;
+			_cgiExtension[extension] = value;
 		}
+		else if(key == "}")
+			break;
 		else
 		{
 			std::cerr << "Error: Unknown key: " << key << std::endl;
