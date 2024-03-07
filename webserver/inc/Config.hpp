@@ -11,6 +11,7 @@
 # include <map>
 # include <string>
 # include <sstream>
+# include <cstdlib>
 # include "Location.hpp"
 
 class Config

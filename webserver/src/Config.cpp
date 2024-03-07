@@ -17,7 +17,7 @@ void Config::defaultConfig() {
 		_maxSize = 1024 * 10;
 }
 
-bool isComment(const std::string &line) {
+bool conf_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
 	{
 		if (!std::isspace(line[i]))
@@ -35,7 +35,7 @@ void Config::parseConfig(const std::string &config) {
 	std::getline(stream, line);
 	while (std::getline(stream, line))
 	{
-		if (isComment(line))
+		if (conf_isComment(line))
 			continue;
 		std::istringstream lineStream(line);
 		lineStream >> key;
@@ -48,15 +48,16 @@ void Config::parseConfig(const std::string &config) {
 		{
 			while (lineStream >> value)
 			{
-				std::set<int>::iterator it = _port.find(std::stoi(value));
+				int intVal = strtol(value.c_str(), NULL, 10);
+				std::set<int>::iterator it = _port.find(intVal);
 				if(it == _port.end())
-					_port.insert(*it);
+					_port.insert(intVal);
 			}
 		}
 		else if (key == "client_max_body_size")
 		{
 			lineStream >> value;
-			_maxSize = std::stoi(value);
+			_maxSize = strtol(value.c_str(), NULL, 10);
 			if(value.find("M") != std::string::npos)
 				_maxSize *= 1024 * 1024;
 			else if(value.find("K") != std::string::npos)
@@ -72,17 +73,20 @@ void Config::parseConfig(const std::string &config) {
 		else if (key == "location")
 		{
 			std::string locatConfig;
-			while(lineStream >> key && key.find("}") == std::string::npos)
+			locatConfig += line;
+			locatConfig += "\n";
+			while(std::getline(stream, line) && line.find("}") == std::string::npos)
 			{
-				locatConfig += key;
+				locatConfig += line;
 				locatConfig += "\n";
 			}
 			Location *newLocation = new Location(locatConfig);
+			_locations.push_back(*newLocation);
 		}
+		else if(key == "}")
+			break;
 		else
-		{
 			std::cerr << "Error: Unknown key: " << key << std::endl;
-		}
 	}
 	defaultConfig();
 }

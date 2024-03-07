@@ -10,7 +10,7 @@ WebServer::WebServer(const std::string &file) {
 WebServer::~WebServer() { }
 
 
-bool isComment(const std::string &line) {
+bool web_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
 	{
 		if (!std::isspace(line[i]))
@@ -33,7 +33,7 @@ void WebServer::parseConfigFile(const std::string &file) {
 	}
 	while (std::getline(fileStream, line))
 	{
-		if (isComment(line))
+		if (web_isComment(line))
 			continue;
 		if (line.find("server") != std::string::npos && line.find("{") != std::string::npos)
 		{

@@ -19,7 +19,7 @@ void Location::defaultConfig() {
 		_index.insert("index.html");
 }
 
-bool isComment(const std::string &line) {
+bool loc_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
 	{
 		if (!std::isspace(line[i]))
@@ -36,7 +36,7 @@ void Location::parseConfig(const std::string &config) {
 
 	while (std::getline(stream, line))
 	{
-		if (isComment(line))
+		if (loc_isComment(line))
 			continue;
 		std::istringstream lineStream(line);
 		lineStream >> key;
@@ -45,12 +45,12 @@ void Location::parseConfig(const std::string &config) {
 			lineStream >> value;
 			_location = value;
 		}
-		if (key == "root")
+		else if (key == "root")
 		{
 			lineStream >> value;
 			_root = value;
 		}
-		if (key == "autoindex")
+		else if (key == "autoindex")
 		{
 			lineStream >> value;
 			if(value == "on")
@@ -75,13 +75,15 @@ void Location::parseConfig(const std::string &config) {
 			lineStream >> value;
 			_return.insert(std::make_pair(code, value));
 		}
-		else if (key == "cgi_extension")
+		else if (key == "fastcgi_pass")
 		{
 			lineStream >> value;
 			std::string extension = value;
 			lineStream >> value;
 			_cgiExtension[extension] = value;
 		}
+		else if(key == "{")
+			continue;
 		else if(key == "}")
 			break;
 		else
