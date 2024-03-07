@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/06 11:55:47 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/07 13:15:23 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,6 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 	_host = "";
 	_contentType = "";
 	_contentLength = 0;
-	_body = "";
 	_number = 0;
 	parseContent(clientSocket);
 }
@@ -49,13 +48,12 @@ void Request::parseBody(int clientSocket) {
 			std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
 			send(clientSocket, continueResponse.c_str(), continueResponse.size(), 0);
 		} else {
-			// Send an immediate final response if not ready
 			std::string finalResponse = "HTTP/1.1 400 Bad Request\r\n\r\n";
 			send(clientSocket, finalResponse.c_str(), finalResponse.size(), 0);
-			// Close the connection or handle accordingly
+			// Close the connection
 		}
 	}
-	// Find the start of the body
+
 	std::string boundary = "\r\n\r\n";
 	size_t bodyStart = _raw.find(boundary) + boundary.size();
 
@@ -139,6 +137,10 @@ void Request::printData()
 
 }
 
+std::string Request::getPath() const
+{
+	return _path;
+}
 /* std::string Request::getHeader() const
 {
 	return _header;
@@ -149,10 +151,6 @@ std::string Request::getMethod() const
 	return _method;
 }
 
-std::string Request::getPath() const
-{
-	return _path;
-}
 
 std::string Request::getExtension() const
 {
