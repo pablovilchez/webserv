@@ -4,7 +4,11 @@ WebServer::WebServer() { }
 
 WebServer::WebServer(const std::string &file) {
 	parseConfigFile(file);
+	
+	while (1)
+	{
 
+	}
 }
 
 WebServer::~WebServer() { }
