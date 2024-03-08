@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/07 13:15:23 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/08 16:13:01 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,9 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 	_host = "";
 	_contentType = "";
 	_contentLength = 0;
+	_fileName = "";
 	_number = 0;
+	_boundary = "";
 	parseContent(clientSocket);
 }
 
@@ -32,13 +34,107 @@ std::string Request::getRaw() const
 }
 #include <vector>
 
-void Request::parseBody(int clientSocket) {
-	// Check if Content-Length header is present
+void	Request::captureFileName(std::string receivedData) {
+	size_t filenamePos = receivedData.find("filename=");
+
+	if (filenamePos != std::string::npos) {
+		size_t quoteStart = receivedData.find("\"", filenamePos);
+		size_t quoteEnd = receivedData.find("\"", quoteStart + 1);
+		if (quoteStart != std::string::npos && quoteEnd != std::string::npos) {
+			if (quoteEnd - quoteStart == 1)
+				_fileName = "default";
+			else
+				_fileName = receivedData.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
+		}
+		std::cout << "file name: " << _fileName << std::endl;
+	}
+}
+
+bool	Request::fileExtension() {
+	if (_contentType.find("image/jpg") != std::string::npos)
+		return true;
+	else if (_contentType.find("image/png") != std::string::npos)
+		return true;
+	else if (_contentType.find("txt") != std::string::npos)
+		return true;
+	else {
+		std::cerr << "Unsupported content type." << std::endl;
+		return false;
+		// error code int
+	}
+}
+
+void	Request::parseBody(const char *buf, int bytesReceived) {
+	static int i = 0;
+	std::string boundary = "\r\n\r\n";
+	std::string receivedData(buf, bytesReceived);
+	size_t boundaryPos = receivedData.find(boundary);
+
 	if (_contentLength == 0) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
 	}
-	// Check if the request has "Expect: 100-continue"
+	if (_body.empty())
+		_body.reserve(_contentLength);
+	if (i == 0 && boundaryPos != std::string::npos) {
+		captureFileName(receivedData);
+		_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
+		i = 1;
+	} else
+		_body.insert(_body.end(), buf, buf + bytesReceived);
+
+	// Save the file with the appropriate extension
+	if (receivedData.find(_boundary + "--") != std::string::npos) {
+		if (fileExtension() == true) {
+			std::ofstream outputFile(_fileName, std::ios::binary);
+			if (outputFile.is_open()) {
+				outputFile.write(_body.data(), _body.size());
+				outputFile.close();
+			} else
+				std::cerr << "Error opening file for writing." << std::endl;
+		}
+		//_body.clear();
+	}
+}
+
+void Request::parseContent(int clientSocket)
+{
+	size_t	pos = 0;
+	size_t	end = _raw.find("\r\n");
+
+	if (end != std::string::npos) {
+		std::string	line = _raw.substr(pos, end - pos);
+		size_t	space1 = line.find(' ');
+		size_t	space2 = line.find(' ', space1 + 1);
+
+		if (space1 != std::string::npos || space2 != std::string::npos) {
+			_method = line.substr(0, space1);
+			_path = line.substr(space1 + 1, space2 - space1 - 1);
+			_version = line.substr(space2 + 1);
+		}
+		pos = end + 2;
+	}
+
+	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
+		std::string	line = _raw.substr(pos, end - pos);
+		size_t	colPos = line.find(':');
+		if (colPos != std::string::npos) {
+			std::string	key = line.substr(0, colPos);
+			std::string	value = line.substr(colPos + 2);
+			if (key == "Host")
+				_host = value;
+			else if (key == "Content-Length")
+				_contentLength = atoi(value.c_str());
+			else if (key == "Content-Type") {
+				_contentType = value;
+				size_t bPos = value.find("boundary=");
+				if (bPos != std::string::npos) {
+					_boundary = value.substr(bPos + 9);
+				}
+			}
+		}
+		pos = end + 2;
+	}
 	size_t expectHeaderPos = _raw.find("Expect: 100-continue");
 	if (expectHeaderPos != std::string::npos) {
 
@@ -53,76 +149,6 @@ void Request::parseBody(int clientSocket) {
 			// Close the connection
 		}
 	}
-
-	std::string boundary = "\r\n\r\n";
-	size_t bodyStart = _raw.find(boundary) + boundary.size();
-
-	// Create a vector with the size of the content length
-	std::vector<char> bodyData(_contentLength);
-
-	// Copy the binary data from the body into the vector
-	std::copy_n(_raw.begin() + bodyStart, _contentLength, bodyData.begin());
-
-	// Identify content type
-	std::string fileExtension;
-	if (_contentType.find("image/jpeg") != std::string::npos) {
-		fileExtension = ".jpg";
-	} else if (_contentType.find("image/png") != std::string::npos) {
-		fileExtension = ".png";
-	} else {
-		std::cerr << "Unsupported content type." << std::endl;
-		return;
-	}
-
-	// Save the file with the appropriate extension
-	std::ofstream outputFile("uploaded_image" + fileExtension, std::ios::binary);
-	if (outputFile.is_open()) {
-		// Write the binary data to the file
-		outputFile.write(bodyData.data(), bodyData.size());
-		outputFile.close();
-		std::cout << "File saved: uploaded_image" << fileExtension << std::endl;
-	} else {
-		std::cerr << "Error opening file for writing." << std::endl;
-	}
-}
-
-void Request::parseContent(int clientSocket)
-{
-	size_t	pos = 0;
-	size_t	end = _raw.find("\r\n");
-	std::cout << "Raw Request:\n" << _raw << std::endl;
-	// parse request line
-	if (end != std::string::npos) {
-		std::string	line = _raw.substr(pos, end - pos);
-		size_t	space1 = line.find(' ');
-		size_t	space2 = line.find(' ', space1 + 1);
-
-		if (space1 != std::string::npos || space2 != std::string::npos) {
-			_method = line.substr(0, space1);
-			_path = line.substr(space1 + 1, space2 - space1 - 1);
-			_version = line.substr(space2 + 1);
-		}
-		pos = end + 2; // Move to the next position after "\r\n"
-	}
-
-	// parse header
-	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
-		std::string	line = _raw.substr(pos, end - pos);
-		size_t	colPos = line.find(':');
-		if (colPos != std::string::npos) {
-			std::string	key = line.substr(0, colPos);
-			std::string	value = line.substr(colPos + 2);
-			if (key == "Host")
-				_host = value;
-			else if (key == "Content-Type")
-				_contentType = value;
-			else if (key == "Content-Length")
-				_contentLength = atoi(value.c_str());
-		}
-		pos = end + 2;
-	}
-	if (_method == "POST")
-		parseBody(clientSocket);
 }
 
 void Request::printData()
