@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/08 16:13:01 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/10 21:37:51 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,9 +21,9 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 	_contentType = "";
 	_contentLength = 0;
 	_fileName = "";
-	_number = 0;
+	_status = "";
 	_boundary = "";
-	parseContent(clientSocket);
+	handleRequest(clientSocket);
 }
 
 Request::~Request() { }
@@ -32,7 +32,6 @@ std::string Request::getRaw() const
 {
 	return _raw;
 }
-#include <vector>
 
 void	Request::captureFileName(std::string receivedData) {
 	size_t filenamePos = receivedData.find("filename=");
@@ -46,7 +45,6 @@ void	Request::captureFileName(std::string receivedData) {
 			else
 				_fileName = receivedData.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
 		}
-		std::cout << "file name: " << _fileName << std::endl;
 	}
 }
 
@@ -97,10 +95,11 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	}
 }
 
-void Request::parseContent(int clientSocket)
+void Request::parseHeader(int clientSocket)
 {
 	size_t	pos = 0;
 	size_t	end = _raw.find("\r\n");
+
 
 	if (end != std::string::npos) {
 		std::string	line = _raw.substr(pos, end - pos);
@@ -114,7 +113,9 @@ void Request::parseContent(int clientSocket)
 		}
 		pos = end + 2;
 	}
-
+	if (_method != "GET" || _method != "POST" || _method != "DELETE" ||
+		_path[0] != '/' || _version != "HTTP/1.1")
+			return (setStatus("400 Bad Request"));
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
 		std::string	line = _raw.substr(pos, end - pos);
 		size_t	colPos = line.find(':');
@@ -151,6 +152,53 @@ void Request::parseContent(int clientSocket)
 	}
 }
 
+void	serveFile(std::string &fileToOpen) {
+	
+}
+
+void	Request::handleGetMethod(std::string &fileToOpen){
+	if (!_location.isAcceptedMethod("GET") || access(fileToOpen.c_str(), R_OK) == -1)
+		setStatus("403 Forbiden");
+	if (_path.back() == '/') { // path is a directory
+		if (!_location.getIndex.empty() && _location.isIndexFile(_path)) {
+			serveFile(fileToOpen);
+		}
+		else if (_location.getDirectoryListing())
+		
+	}
+	else { // path is a file
+		
+	}
+}
+
+void	Request::handlePostMethod(){
+	if (!_location.isAcceptedMethod("POST"))
+		setStatus("403 Forbiden");
+}
+
+void	Request::handleDeleteMethod(std::string &fileToOpen){
+	if (!_location.isAcceptedMethod("DELETE"))
+		setStatus("403 Forbiden");
+}
+
+void	Request::handleRequest(int clientSocket) {
+	std::string	fileToOpen;
+
+	fileToOpen = _location.getRoot() + getPath();
+	if (access(fileToOpen.c_str(), F_OK) == -1)
+		setStatus("404 Not Found");
+	parseHeader(clientSocket);
+	if (_method == "GET")
+		handleGetMethod(fileToOpen);
+	else if (_method == "POST")
+		handlePostMethod();
+	else if (_method == "DELETE")
+		handleDeleteMethod(fileToOpen);
+	else
+		setStatus("405 Method Not Allowed");
+		
+}
+
 void Request::printData()
 {
 	std::cout << "Request _method:    " << _method << std::endl;
@@ -167,6 +215,11 @@ std::string Request::getPath() const
 {
 	return _path;
 }
+
+void	Request::setStatus(const std::string &status) {
+	_status = status;
+}
+
 /* std::string Request::getHeader() const
 {
 	return _header;

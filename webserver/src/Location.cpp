@@ -105,3 +105,8 @@ std::map<int, std::string> Location::getReturn() const {
 std::map<std::string, std::string> Location::getCgiExtension() const {
 	return _cgiExtension;
 }
+
+// Check if the file is in the index set
+bool	Location::isIndexFile(const std::string& fileName) const {
+	return _index.find(fileName) != _index.end();
+}
