@@ -6,12 +6,12 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/10 21:37:51 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/11 17:53:17 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.hpp"
-
+#include <sys/types.h>
 Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 {
 	_method = "";
@@ -23,6 +23,9 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 	_fileName = "";
 	_status = "";
 	_boundary = "";
+	_repsonseHeader = "";
+	_repsonseBody = "";
+	_done = false;
 	handleRequest(clientSocket);
 }
 
@@ -63,7 +66,7 @@ bool	Request::fileExtension() {
 }
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
-	static int i = 0;
+	static int	i = 0;
 	std::string boundary = "\r\n\r\n";
 	std::string receivedData(buf, bytesReceived);
 	size_t boundaryPos = receivedData.find(boundary);
@@ -152,23 +155,84 @@ void Request::parseHeader(int clientSocket)
 	}
 }
 
-void	serveFile(std::string &fileToOpen) {
+void	Request::buildHeader() {
+	_repsonseHeader = "HTTP/1.1 " + _status + "\r\n";
+	_repsonseHeader += "Content-Type: " + _contentType + "\r\n";
+	_repsonseHeader += "Content-Length: " + _contentLength + "\r\n";
+	_repsonseHeader += "\r\n"; 
+}
+
+void	Request::buildResponse(std::string &fileToOpen) {
+	std::fstream	fileStream(fileToOpen.c_str());
+	if (fileStream) {
+		_repsonseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
+		fileStream.close();
+		buildHeader();
+	} else {
+		setStatus("500 Internal Server Error"); // Failed to open the file
+	}
+	_done = true;
+}
+
+bool	Request::validateRequest(const std::string& method) {
+	size_t	firstSlashPos = _path.find('/');
+	size_t	secondSlashPos = _path.find('/', firstSlashPos + 1);
+	const std::string requestedLocation;
+	if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos)
+		requestedLocation = _path.substr(firstSlashPos, secondSlashPos - firstSlashPos);
+	else
+		requestedLocation = _path;
+	_location = _config.getLocation(requestedLocation);
+	if (_location.getLocation() == "null") {
+		setStatus("404 Not Found");
+		return false;
+	}
+	else if (!_location.isAcceptedMethod(method)) {
+		setStatus("403 Forbidden");
+		return false;
+	}
+	else
+		return true;
+}
+
+void	Request::generateAutoIndex(std::string &uri) {
+
+	DIR *dir = opendir(uri.c_str());
+
+	if (!dir) {
+		std::cerr << "Error opening directory" << std::endl;
+		return;
+	}
+	_repsonseBody += "<html>\n <head>\n <title>Index of " + uri + "</title>\n </head>\n <body>";
+	_repsonseBody += "<h1>Index of " + uri + "</h1>";
+	_repsonseBody += "<ul>\n";
+
+	struct dirnet	currDir;
 	
+	buildHeader()
+
 }
 
 void	Request::handleGetMethod(std::string &fileToOpen){
-	if (!_location.isAcceptedMethod("GET") || access(fileToOpen.c_str(), R_OK) == -1)
-		setStatus("403 Forbiden");
+	
+	if (!validateRequest("GET") || access(fileToOpen.c_str(), R_OK) == -1)
+		return;
 	if (_path.back() == '/') { // path is a directory
 		if (!_location.getIndex.empty() && _location.isIndexFile(_path)) {
-			serveFile(fileToOpen);
+			fileToOpen += _location.getIndex();
+			buildResponse(fileToOpen);
 		}
 		else if (_location.getDirectoryListing())
+			generateAutoIndex(fileToOpen);
+
+		else
+			setStatus("404 Not Found");
 		
 	}
 	else { // path is a file
 		
 	}
+	_done = true;
 }
 
 void	Request::handlePostMethod(){
@@ -181,10 +245,23 @@ void	Request::handleDeleteMethod(std::string &fileToOpen){
 		setStatus("403 Forbiden");
 }
 
+std::string	Request::extractPathFromUrl(std::string& url) {
+	size_t	firstSlashPos = url.find('/');
+	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
+
+	if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
+		size_t	pathStartPos = secondSlashPos;
+		std::string	path = url.substr(pathStartPos);
+		if (path[1])
+			return getRoot() + path;
+	}
+	return url;
+}
+
 void	Request::handleRequest(int clientSocket) {
 	std::string	fileToOpen;
 
-	fileToOpen = _location.getRoot() + getPath();
+	fileToOpen = extractPathFromUrl(_path);
 	if (access(fileToOpen.c_str(), F_OK) == -1)
 		setStatus("404 Not Found");
 	parseHeader(clientSocket);
@@ -196,7 +273,8 @@ void	Request::handleRequest(int clientSocket) {
 		handleDeleteMethod(fileToOpen);
 	else
 		setStatus("405 Method Not Allowed");
-		
+	if (!_done)
+		buildResponse();
 }
 
 void Request::printData()
@@ -218,6 +296,14 @@ std::string Request::getPath() const
 
 void	Request::setStatus(const std::string &status) {
 	_status = status;
+}
+
+std::string	Request::getResponseHeader() const {
+	return _repsonseHeader;
+}
+
+std::string	Request::getResponseBody() const {
+	return _repsonseBody;
 }
 
 /* std::string Request::getHeader() const

@@ -14,6 +14,10 @@ Location::Location(const std::string &data) {
 	parseData(data);
 }
 
+Location::Location(int error) {
+	_location = "null";
+}
+
 Location::~Location() { }
 
 void Location::parseData(const std::string &data) {

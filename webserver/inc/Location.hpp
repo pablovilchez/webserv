@@ -10,6 +10,7 @@ class Location
 {
 	public:
 		Location();
+		Location(int error);
 		Location(const std::string &data);
 		~Location();
 

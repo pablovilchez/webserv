@@ -64,6 +64,6 @@ const Location& Config::getLocation(const std::string &location) const {
 		if(it->getLocation() == location)
 			return *it;
 	}
-	static const Location invalidLocation("null");
+	static const Location invalidLocation(0);
 	return invalidLocation;
 }
