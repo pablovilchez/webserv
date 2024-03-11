@@ -18,11 +18,11 @@ class Config
 {
 	public:
 		Config();
-		Config(const std::string &config);
+		Config(const std::string &config, int servNum);
 		~Config();
 
-		void defaultConfig();
-		void parseConfig(const std::string &config);
+		void defaultConfig(int servNum);
+		void parseConfig(const std::string &config, int servNum);
 		void printData();
 
 		void setLocation(Location *location);

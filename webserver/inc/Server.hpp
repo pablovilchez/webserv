@@ -11,7 +11,7 @@ class Server
 {
 	public:
 		Server();
-		Server(const std::string &config);
+		Server(const std::string &config, int servNum);
 		~Server();
 
 	private:

@@ -4,11 +4,7 @@ WebServer::WebServer() { }
 
 WebServer::WebServer(const std::string &file) {
 	parseConfigFile(file);
-	
-	while (1)
-	{
 
-	}
 }
 
 WebServer::~WebServer() { }
@@ -28,7 +24,8 @@ void WebServer::parseConfigFile(const std::string &file) {
 	std::string line;
 	std::string buffer;
 	int servers = 0;
-	int i = 0;
+	int checkEnd = 0;
+	int servNum = 0;
 
 	if (!fileStream.is_open())
 	{
@@ -43,17 +40,17 @@ void WebServer::parseConfigFile(const std::string &file) {
 		{
 			buffer = line;
 			buffer += "\n";
-			i = 1;
-			while (std::getline(fileStream, line) && i > 0)
+			checkEnd = 1;
+			while (std::getline(fileStream, line) && checkEnd > 0)
 			{
 				buffer += line;
 				buffer += "\n";
 				if (line.find("{") != std::string::npos)
-					i++;
+					checkEnd++;
 				if (line.find("}") != std::string::npos)
-					i--;
+					checkEnd--;
 			}
-			_servers.push_back(Server(buffer));
+			_servers.push_back(Server(buffer, servNum++));
 			servers++;
 		}
 	}

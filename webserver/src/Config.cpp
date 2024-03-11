@@ -1,16 +1,16 @@
 #include "Config.hpp"
 
 Config::Config() : _maxSize(0) {
-	defaultConfig();
+	defaultConfig(0);
 	Location *newLocation = new Location();
 	setLocation(newLocation);
 }
 
-void Config::defaultConfig() {
+void Config::defaultConfig(int servNum) {
 	if(_port.empty())
 		_port.insert(8080);
 	if(_serverName.empty())
-		_serverName = "default_server";
+		_serverName = "serv_" + std::to_string(servNum);
 	if(_errorPages.empty())
 		_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
 	if(_maxSize == 0)
@@ -26,7 +26,7 @@ bool conf_isComment(const std::string &line) {
 	return true;
 }
 
-void Config::parseConfig(const std::string &config) {
+void Config::parseConfig(const std::string &config, int servNum) {
 	std::istringstream stream(config);
 	std::string line;
 	std::string key;
@@ -88,11 +88,11 @@ void Config::parseConfig(const std::string &config) {
 		else
 			std::cerr << "Error: Unknown key: " << key << std::endl;
 	}
-	defaultConfig();
+	defaultConfig(servNum);
 }
 
-Config::Config(const std::string &config) {
-	parseConfig(config);
+Config::Config(const std::string &config, int servNum) {
+	parseConfig(config, servNum);
 	if (DEBUG) printData();
 }
 
