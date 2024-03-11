@@ -1,27 +1,107 @@
 #include "Location.hpp"
 
-Location::Location() {
-	_location = "/default";
-	_acceptedMethods.insert("GET");
-	_acceptedMethods.insert("POST");
-	_acceptedMethods.insert("DELETE");
-	_root = "var/default";
-	_index.insert("index.html");
-	_directoryListing = false;
+Location::Location() : _directoryListing(false) {
+	defaultConfig();
 }
 
-Location::Location(const std::string &data) {
-	parseData(data);
+void Location::defaultConfig() {
+	if(_location.empty())
+		_location= "/default";
+	if(_acceptedMethods.empty())
+	{
+		_acceptedMethods.insert("GET");
+		_acceptedMethods.insert("POST");
+		_acceptedMethods.insert("DELETE");
+	}
+	if(_root.empty())
+		_root = "var/default";
+	if(_index.empty())
+		_index.insert("index.html");
+}
+
+bool loc_isComment(const std::string &line) {
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		if (!std::isspace(line[i]))
+			return line[i] == '#';
+	}
+	return true;
+}
+
+void Location::parseConfig(const std::string &config) {
+	std::istringstream stream(config);
+	std::string line;
+	std::string key;
+	std::string value;
+
+	while (std::getline(stream, line))
+	{
+		if (loc_isComment(line))
+			continue;
+		std::istringstream lineStream(line);
+		lineStream >> key;
+		if (key == "location")
+		{
+			lineStream >> value;
+			_location = value;
+		}
+		else if (key == "root")
+		{
+			lineStream >> value;
+			_root = value;
+		}
+		else if (key == "autoindex")
+		{
+			lineStream >> value;
+			if(value == "on")
+				_directoryListing = true;
+			else
+				_directoryListing = false;
+		}
+		else if (key == "index")
+		{
+			while (lineStream >> value)
+				_index.insert(value);
+		}
+		else if (key == "allow_methods")
+		{
+			while (lineStream >> value)
+				_acceptedMethods.insert(value);
+		}
+		else if (key == "return")
+		{
+			int code;
+			lineStream >> code;
+			lineStream >> value;
+			_return.insert(std::make_pair(code, value));
+		}
+		else if (key == "fastcgi_pass")
+		{
+			lineStream >> value;
+			std::string extension = value;
+			lineStream >> value;
+			_cgiExtension[extension] = value;
+		}
+		else if(key == "{")
+			continue;
+		else if(key == "}")
+			break;
+		else
+		{
+			std::cerr << "Error: Unknown key: " << key << std::endl;
+		}
+	}
+	defaultConfig();
+}
+
+Location::Location(const std::string &config) : _directoryListing(false) {
+	parseConfig(config);
 }
 
 Location::~Location() { }
 
-void Location::parseData(const std::string &data) {
-	(void)data;
-}
-
 void Location::printData() const {
-	std::cout << "Location:  " << _location << std::endl;
+	std::cout << "Location  " << _location << std::endl;
 	std::cout << "{" << std::endl;
 	std::cout << "  Accepted methods: ";
 	std::set<std::string>::iterator it;
@@ -48,6 +128,7 @@ void Location::printData() const {
 	std::cout << std::endl << "}" << std::endl;
 }
 
+/* 
 // SETTERS ---------------------------------
 void Location::setLocation(const std::string &path) {
 	_location = path;
@@ -76,6 +157,8 @@ void Location::setCgiExtension(const std::string &extension, const std::string &
 void Location::setReturn(const int &httpCode, const std::string &redir) {
 	_return[httpCode] = redir;
 }
+ */
+
 
 // GETTERS ---------------------------------
 std::string Location::getLocation() const {

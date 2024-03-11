@@ -10,16 +10,17 @@ class Location
 		Location(const std::string &data);
 		~Location();
 
-		void parseData(const std::string &data);
+		void defaultConfig();
+		void parseConfig(const std::string &config);
 		void printData() const;
 
-		void setAcceptedMethod(const std::string &method);
+		/* void setAcceptedMethod(const std::string &method);
 		void setLocation(const std::string &path);
 		void setRoot(const std::string &rootPath);
 		void setIndex(const std::string &indexPath);
 		void setDirectoryListing(const bool &value);
 		void setCgiExtension(const std::string &extension, const std::string &executable);
-		void setReturn(const int &httpCode, const std::string &redir);
+		void setReturn(const int &httpCode, const std::string &redir); */
 
 		bool isAcceptedMethod(const std::string &method) const;
 		std::string getLocation() const;

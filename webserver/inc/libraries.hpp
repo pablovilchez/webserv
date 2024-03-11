@@ -1,6 +1,10 @@
 #ifndef LIBRARIES_HPP
 #define LIBRARIES_HPP
 
+# ifndef DEBUG
+#  define DEBUG false
+# endif
+
 #include <iostream>
 #include <string>
 #include <fstream>

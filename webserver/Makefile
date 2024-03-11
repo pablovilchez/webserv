@@ -5,6 +5,10 @@ CC = c++ #-fsanitize=address
 FLAGS = -Wall -Wextra -Werror -std=c++98
 REMOVE = rm -rf
 
+ifeq ($(DEBUG), true)
+	FLAGS += -DDEBUG
+endif
+
 INC_PATH = inc
 SRC_PATH = src
 OBJ_PATH = obj

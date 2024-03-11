@@ -16,6 +16,10 @@ Server &Server::operator=(Server const &src) {
 	return *this;
 }
 
+Server::Server(const std::string &config, int servNum) : _config(config, servNum) {
+	_config.printData();
+}
+
 Server::~Server() {
 
 }
