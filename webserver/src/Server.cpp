@@ -1,8 +1,5 @@
 #include "Server.hpp"
 
-const int MAX_CLIENTS = 100;
-const int PORT = 8080;
-
 Server::Server() {
 
 }
@@ -17,14 +14,14 @@ Server &Server::operator=(Server const &src) {
 }
 
 Server::Server(const std::string &config, int servNum) : _config(config, servNum) {
-	_config.printData();
+
 }
 
 Server::~Server() {
 
 }
 
-int getServerSocket() {
+/* int getServerSocket() {
 	int listening = socket(PF_INET, SOCK_STREAM, 0);
 	if (listening == -1) {
 		perror("Can't create a socket");
@@ -32,15 +29,15 @@ int getServerSocket() {
 	}
 	return listening;
 }
-
-void Server::_fillServerAddr() {
+ */
+/* void Server::_fillServerAddr() {
 	_server_addr.sin_family = AF_INET;
 	_server_addr.sin_port = htons(PORT);
 	_server_addr.sin_addr.s_addr = INADDR_ANY;
 	memset(&(_server_addr.sin_zero), '\0', 8);
-}
+} */
 
-void printServerInfo() {
+/* void printServerInfo() {
 	char hostName[1024];
     gethostname(hostName, 1024);
     std::cout << "Server started on " << hostName << std::endl;
@@ -53,15 +50,15 @@ void printServerInfo() {
 
 	std::cout << "IP Address: " << inet_ntoa(*(in_addr*)*host->h_addr_list) << std::endl;
 }
-
-void createNewpollfd(int some_socket, std::vector<pollfd> &_poll_fds) {
+ */
+/* void createNewpollfd(int some_socket, std::vector<pollfd> &_poll_fds) {
 	pollfd listen_pollfd;
 	listen_pollfd.fd = some_socket;
 	listen_pollfd.events = POLLIN;
 	_poll_fds.push_back(listen_pollfd);
-}
+} */
 
-void Server::_startServerLoop() {
+/* void Server::_startServerLoop() {
 	createNewpollfd(_listen_sock, _poll_fds);
 
 	while(1) {
@@ -184,9 +181,6 @@ void Server::_startServerLoop() {
 }
 
 void Server::startServer() {
-	// Create Socket
-	_listen_sock = getServerSocket();
-	_fillServerAddr();
 	_poll_fds.reserve(MAX_CLIENTS);
 	int yes = 1;
 	if (setsockopt(_listen_sock, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(int)) == -1) {
@@ -212,4 +206,9 @@ void Server::startServer() {
 	printServerInfo();
 
 	_startServerLoop();
+} */
+
+const Config &Server::getConfig() const {
+	return _config;
 }
+

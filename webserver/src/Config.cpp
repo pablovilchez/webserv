@@ -10,7 +10,7 @@ void Config::defaultConfig(int servNum) {
 	if(_port.empty())
 		_port.insert(8080);
 	if(_serverName.empty())
-		_serverName = "serv_" + std::to_string(servNum);
+		_serverName = "nuevo_" + std::to_string(servNum);
 	if(_errorPages.empty())
 		_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
 	if(_maxSize == 0)

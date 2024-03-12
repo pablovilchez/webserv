@@ -6,18 +6,20 @@
 
 class Server;
 
-class WebServer
-{
+class WebServer {
 	public:
 		WebServer();
 		WebServer(const std::string &file);
+		WebServer(const WebServer &other);
+		WebServer& operator=(const WebServer &other);
 		~WebServer();
 
 		void parseConfigFile(const std::string &file);
 
 	private:
-		std::string _configData;
 		std::vector<Server> _servers;
+		std::vector<pollfd> _poll_fds;
+		std::map<int, std::vector<Server> > _portsMap;
 };
 
 #endif

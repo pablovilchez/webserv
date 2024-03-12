@@ -6,11 +6,7 @@
 
 class Server {
 	private:
-		Config				 _config;
-		int					_listen_sock;
-		struct sockaddr_in	_server_addr;
-		std::vector<pollfd> _poll_fds;
-
+		Config	_config;
 		void _fillServerAddr();
 		void _startServerLoop();
 
@@ -20,7 +16,7 @@ class Server {
 		Server &operator=(Server const &src);
 		Server(const std::string &config, int servNum);
 		~Server();
-		void startServer();
+		const Config &getConfig() const;
 };
 
 #endif

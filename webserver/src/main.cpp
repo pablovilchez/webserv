@@ -5,12 +5,11 @@
 #include "Config.hpp"
 
 
-int main() {
-/*     Config conf;
-    conf.printData(); */
-    //WebServer server("config.conf");
-    Server server;
-    server.startServer();
-
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
+        return 1;
+    }
+    WebServer webserver(argv[1]);
     return 0;
 }
