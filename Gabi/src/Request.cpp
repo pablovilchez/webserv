@@ -6,19 +6,19 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/12 13:15:11 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/12 16:26:22 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.hpp"
 #include <sys/types.h>
-Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
-{
+Request::Request(const std::string &raw, int clientSocket) : _raw(raw) {
 	_method = "";
 	_path = "";
 	_version = "";
 	_host = "";
 	_contentType = "";
+	_extension = "";
 	_contentLength = 0;
 	_fileName = "";
 	_status = "";
@@ -26,6 +26,7 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 	_responseHeader = "";
 	_responseBody = "";
 	_done = false;
+	_redirectionLocation = "";
 	handleRequest(clientSocket);
 }
 
@@ -51,7 +52,30 @@ void	Request::captureFileName(std::string receivedData) {
 	}
 }
 
-bool Request::fileExtension() {
+bool	Request::fileExtension(const std::string& contentType) {
+	std::unordered_map<std::string, std::string> contentTypeExtensions = {
+		{"image/jpeg", ".jpg"},
+		{"image/png", ".png"},
+		{"image/gif", ".gif"},
+		{"text/plain", ".txt"},
+		{"text/html", ".html"},
+		{"application/json", ".json"},
+		{"application/pdf", ".pdf"},
+		{"application/msword", ".doc"},
+		{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"}
+	};
+
+	std::unordered_map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
+	if (it != contentTypeExtensions.end()) {
+		_extension = it->second;
+		return true;
+	} else {
+		_contentType = "Unsupported content type";
+		return false;
+	}
+}
+
+/* bool Request::fileExtension() {
 	// an image
 	if (_contentType.find("image/jpeg") != std::string::npos ||
 		_contentType.find("image/png") != std::string::npos ||
@@ -72,7 +96,7 @@ bool Request::fileExtension() {
 	}
 	std::cerr << "Unsupported content type." << std::endl;
 	return false;
-}
+} */
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
 	static int	i = 0;
@@ -95,7 +119,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 
 	// Save the file with the appropriate extension
 	if (receivedData.find(_boundary + "--") != std::string::npos) {
-		if (fileExtension() == true) {
+		if (fileExtension(_contentType) == true) {
 			std::ofstream outputFile(_fileName, std::ios::binary);
 			if (outputFile.is_open()) {
 				outputFile.write(_body.data(), _body.size());
@@ -104,6 +128,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 				std::cerr << "Error opening file for writing." << std::endl;
 		}
 		//_body.clear();
+		//_done = true;
 	}
 }
 
@@ -168,6 +193,8 @@ void	Request::buildHeader() {
 	std::stringstream	contLenStr;
 	contLenStr << _contentLength;
 	_responseHeader = "HTTP/1.1 " + _status + "\r\n";
+	if (_redirectionLocation)
+		_responseHeader += "Location: " + _redirectionLocation + "\r\n";
 	_responseHeader += "Content-Type: " + _contentType + "\r\n";
 	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
 	_responseHeader += "\r\n"; 
@@ -237,7 +264,7 @@ std::string	Request::extractDirectory(const std::string& path) {
 	size_t secondLastSlashPos = path.find_last_of('/', lastSlashPos - 1);
 
 	if (lastSlashPos != std::string::npos && secondLastSlashPos != std::string::npos)
-		return path.substr(secondLastSlashPos, lastSlashPos - secondLastSlashPos);
+		return path.substr(secondLastSlashPos + 1, lastSlashPos - secondLastSlashPos - 1);
 	return "";
 }
 
@@ -247,7 +274,16 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 		return;
 	if (_path.back() == '/') { // path is a directory
 		const std::string&	dir = extractDirectory(_path);
-		if (!_location.getIndex().empty() && _location.isIndexFile(dir)) {
+		if (!_location.getReturn().empty()) {
+			std::map<int, std::string>	redirections = _location.getReturn();
+			if (redirections.find(301) != redirections.end()) {
+				std::string	redirectionLocation = redirections[301];
+				setStatus("301 Moved Permanently");
+				_contentType = "text/html";
+				buildHeader();
+			}
+		}
+		else if (!_location.getIndex().empty() && _location.isIndexFile(dir)) {
 			const std::set<std::string>&	indexFiles = _location.getIndex();
 			for (const std::string& indexFile : indexFiles){
 				std::string	filePath = fileToOpen + indexFile;
@@ -263,7 +299,13 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			setStatus("404 Not Found");
 	}
 	else { // path is a file
-		
+		if (fileExtension(_contentType)) {
+			// if (!_location.getCgiExtension().empty())
+				// Handle CGI processing
+			buildResponse(fileToOpen);
+			else
+				setStatus("500 Internal Server Error"); // Unable to open file
+		}
 	}
 	_done = true;
 }
@@ -271,6 +313,8 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 void	Request::handlePostMethod(){
 	if (!_location.isAcceptedMethod("POST"))
 		setStatus("403 Forbiden");
+	if (_maxSize < _contentLength)
+		setStatus();
 }
 
 void	Request::handleDeleteMethod(std::string &fileToOpen){
@@ -339,18 +383,18 @@ std::string	Request::getResponseBody() const {
 	return _responseBody;
 }
 
-/* std::string Request::getHeader() const
-{
-	return _header;
-}
 
 std::string Request::getMethod() const
 {
 	return _method;
 }
 
-
 std::string Request::getExtension() const
 {
 	return _extension;
+}
+
+/* std::string Request::getHeader() const
+{
+	return _header;
 } */

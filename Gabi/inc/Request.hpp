@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:12:49 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/12 13:12:20 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/12 16:25:43 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,7 @@ class Request
 		void	parseBody(const char *buf, int bytesReceived);
 		void	printData();
 		void	captureFileName(std::string receivedData);
-		bool	fileExtension();
+		//bool	fileExtension();
 		void	setStatus(const std::string &status);
 		std::string getPath() const;
 		std::string getRaw() const;
@@ -51,9 +51,9 @@ class Request
 		void	buildHeader();
 		void	buildResponse(std::string &fileToOpen);
 		std::string	extractDirectory(const std::string& path);
-/* 		std::string getHeader() const;
 		std::string getMethod() const;
-		std::string getExtension() const; */
+		std::string getExtension() const;
+		//std::string getHeader() const;
 
 	private:
 		std::string	_raw;
@@ -62,6 +62,7 @@ class Request
 		std::string	_version;
 		std::string	_host;
 		std::string	_contentType;
+		std::string	_extension;
 		std::string	_fileName;
 		size_t		_contentLength;
 		std::vector<char>	_body;
@@ -73,7 +74,9 @@ class Request
 		Config		_config;
 		std::string	_responseHeader;
 		std::string	_responseBody;
+		std::string	_redirectionLocation;
 		bool		_done;
+		std::unordered_map<std::string, std::string> contentTypeExtensions;
 };
 
 #endif
