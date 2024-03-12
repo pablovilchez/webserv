@@ -7,13 +7,10 @@
 class Server {
 	private:
 		Config	_config;
-		void _fillServerAddr();
-		void _startServerLoop();
-
 	public:
 		Server();
-		Server(Server const &src);
-		Server &operator=(Server const &src);
+		Server(const Server &src);
+		Server &operator=(const Server &src);
 		Server(const std::string &config, int servNum);
 		~Server();
 		const Config &getConfig() const;

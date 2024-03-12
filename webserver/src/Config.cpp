@@ -3,7 +3,73 @@
 Config::Config() : _maxSize(0) {
 	defaultConfig(0);
 	Location *newLocation = new Location();
-	setLocation(newLocation);
+	_locations.push_back(newLocation);
+}
+
+Config::Config(const std::string &config, int servNum) {
+	(void) config;
+	(void) servNum;
+	/* parseConfig(config, servNum);
+	if (DEBUG) printData(); */
+}
+
+
+Config::Config(const Config &other) {
+	(void) other;
+/* 	std::set<int>::iterator it_set;
+	for (it_set = other._port.begin(); it_set != other._port.end(); it_set++) {
+		_port.insert(*it_set);
+	}
+
+	_serverName = other._serverName;
+
+	std::map<int, std::string>::const_iterator it_map;
+	for (it_map = other._errorPages.begin(); it_map != other._errorPages.end(); it_map++) {
+		_errorPages.insert(std::make_pair(it_map->first, it_map->second));
+	}
+
+	_maxSize = other._maxSize;
+
+	std::vector<Location>::const_iterator it_vec;
+	for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
+		_locations.push_back(*it_vec);
+	} */
+}
+
+Config& Config::operator=(const Config &other) {
+	(void) other;
+/* 	if (this != &other) {
+		_port.clear();
+		std::set<int>::iterator it_set;
+		for (it_set = other._port.begin(); it_set != other._port.end(); it_set++) {
+			_port.insert(*it_set);
+		}
+
+		_serverName = other._serverName;
+
+		_errorPages.clear();
+		std::map<int, std::string>::const_iterator it_map;
+		for (it_map = other._errorPages.begin(); it_map != other._errorPages.end(); it_map++) {
+			_errorPages.insert(std::make_pair(it_map->first, it_map->second));
+		}
+
+		_maxSize = other._maxSize;
+
+		_locations.clear();
+		std::vector<Location>::const_iterator it_vec;
+		for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
+			_locations.push_back(*it_vec);
+		}
+	} */
+	return *this;
+}
+
+Config::~Config() {
+	std::vector<Location*>::iterator it;
+	std::vector<Location*>::iterator end = _locations.end();
+	for (it = _locations.begin(); it != end; it++) {
+		delete *it;
+	}
 }
 
 void Config::defaultConfig(int servNum) {
@@ -17,16 +83,16 @@ void Config::defaultConfig(int servNum) {
 		_maxSize = 1024 * 10;
 }
 
-bool conf_isComment(const std::string &line) {
+/* bool conf_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
 	{
 		if (!std::isspace(line[i]))
 			return line[i] == '#';
 	}
 	return true;
-}
+} */
 
-void Config::parseConfig(const std::string &config, int servNum) {
+/* void Config::parseConfig(const std::string &config, int servNum) {
 	std::istringstream stream(config);
 	std::string line;
 	std::string key;
@@ -89,18 +155,9 @@ void Config::parseConfig(const std::string &config, int servNum) {
 			std::cerr << "Error: Unknown key: " << key << std::endl;
 	}
 	defaultConfig(servNum);
-}
+} */
 
-Config::Config(const std::string &config, int servNum) {
-	parseConfig(config, servNum);
-	if (DEBUG) printData();
-}
-
-Config::~Config() {
-
-}
-
-void Config::printData() {
+/* void Config::printData() {
 	std::cout << "Server name:  " << _serverName << std::endl;
 	std::cout << "Ports:  ";
 	for(std::set<int>::iterator it = _port.begin(); it != _port.end(); it++)
@@ -114,21 +171,21 @@ void Config::printData() {
 	std::cout << "Max Size:  " << _maxSize << std::endl;
 	for(std::vector<Location>::iterator it = _locations.begin(); it != _locations.end(); it++)
 		it->printData();
-}
+} */
 
-void Config::setLocation(Location *location) {
-	_locations.push_back(*location);
-}
+/* void Config::setLocation(Location *location) {
+	_locations.push_back(location);
+} */
 
-std::set<int> Config::getPort() const {
+/* std::set<int> Config::getPort() const {
 	return _port;
 }
 
 std::string Config::getServerName() const {
 	return _serverName;
-}
+} */
 
-std::string Config::getErrorPage(const int &errorCode) const {
+/* std::string Config::getErrorPage(const int &errorCode) const {
 	std::map<int, std::string>::const_iterator it;
 	it = _errorPages.find(errorCode);
 	if (it != _errorPages.end())
@@ -149,4 +206,4 @@ const Location& Config::getLocation(const std::string &location) const {
 	}
 	static const Location invalidLocation("null");
 	return invalidLocation;
-}
+} */

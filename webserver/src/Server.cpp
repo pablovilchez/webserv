@@ -1,15 +1,15 @@
 #include "Server.hpp"
 
-Server::Server() {
+Server::Server() : _config() {
 
 }
 
-Server::Server(Server const &src) {
-	*this = src;
+Server::Server(const Server &other) : _config(other.getConfig()) {
+
 }
 
-Server &Server::operator=(Server const &src) {
-	(void)src;
+Server &Server::operator=(const Server &other) {
+	_config = other.getConfig();
 	return *this;
 }
 
@@ -19,6 +19,10 @@ Server::Server(const std::string &config, int servNum) : _config(config, servNum
 
 Server::~Server() {
 
+}
+
+const Config &Server::getConfig() const {
+	return _config;
 }
 
 /* int getServerSocket() {
@@ -208,7 +212,4 @@ void Server::startServer() {
 	_startServerLoop();
 } */
 
-const Config &Server::getConfig() const {
-	return _config;
-}
 

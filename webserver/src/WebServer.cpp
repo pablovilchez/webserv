@@ -1,15 +1,23 @@
-#include "WebServer.hpp"
+/* #include "WebServer.hpp"
 
-WebServer::WebServer() : _servers(), _poll_fds(), _portsMap(){
+WebServer::WebServer() {
 
 }
 
 WebServer::WebServer(const WebServer &other) {
-	for (std::vector<Server>::const_iterator it = other._servers.begin(); it != other._servers.end(); it++) {
-		this->_servers.push_back(*it);
+	std::vector<Server>::const_iterator vector_it;
+	for (vector_it = other._servers.begin(); vector_it != other._servers.end(); vector_it++) {
+		this->_servers.push_back(*vector_it);
+		//this->_servers.push_back(new Server(*vector_it));
 	}
+
 	_poll_fds = other._poll_fds;
-	perror("Copy constructor for _portsMap in progress...");
+
+	std::map<int, std::vector<Server> >::const_iterator map_it;
+	std::map<int, std::vector<Server> >::const_iterator end = other._portsMap.end();
+	for (map_it = other._portsMap.begin(); map_it != end; map_it++) {
+		_portsMap[map_it->first] = map_it->second;
+	}
 }
 
 WebServer::WebServer(const std::string &file) {
@@ -23,12 +31,18 @@ WebServer::~WebServer() {
 WebServer &WebServer::operator=(const WebServer &other) {
 	if (this != &other) {
 		_servers.clear();
-		for (std::vector<Server>::const_iterator it = other._servers.begin(); it != other._servers.end(); it++) {
-			this->_servers.push_back(*it);
+		std::vector<Server>::const_iterator vector_it;
+		for (vector_it = other._servers.begin(); vector_it != other._servers.end(); vector_it++) {
+			this->_servers.push_back(*vector_it);
 		}
 		_poll_fds = other._poll_fds;
+
 		_portsMap.clear();
-		perror("Asignation operator for _portsMap in progress...");
+		std::map<int, std::vector<Server> >::const_iterator map_it;
+		std::map<int, std::vector<Server> >::const_iterator end = other._portsMap.end();
+		for (map_it = other._portsMap.begin(); map_it != end; map_it++) {
+			_portsMap[map_it->first] = map_it->second;
+		}
 	}
 	return *this;
 }
@@ -85,16 +99,15 @@ void WebServer::parseConfigFile(const std::string &file) {
 		}
 	}
 	fileStream.close();
-	std::map<int, std::vector<Server> >::const_iterator it2;
-	for (it2 = _portsMap.begin(); it2 != _portsMap.end(); it2++) {
-		std::cout << "Port: " << it2->first << std::endl;
-		std::vector<Server>::const_iterator it3 = it2->second.begin();
-		it3++;
-		std::cout << "Server: " << it3->getConfig().getServerName() << std::endl;
-		/* for (it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
-			std::cout << "Server: " << it3->getConfig().getServerName() << std::endl;
-		} */
-	}
+	//std::map<int, std::vector<Server> >::const_iterator it2;
+	//for (it2 = _portsMap.begin(); it2 != _portsMap.end(); it2++) {
+	//	std::cout << "Port: " << it2->first << std::endl;
+	//	std::vector<Server>::const_iterator it3 = it2->second.begin();
+	//	for (it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
+	//		std::cout << "Server: " << it3->getConfig().getServerName() << std::endl;
+	//	}
+	//}
 	std::cout << "Server size:" << _servers.size() << std::endl;
 	//if(DEBUG) std::cout << "WebServer:" << servers << " servers created" << std::endl;
 }
+ */

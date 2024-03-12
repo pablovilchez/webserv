@@ -8,6 +8,8 @@ class Config
 {
 	public:
 		Config();
+		Config(const Config& other);
+		Config& operator=(const Config& other);
 		Config(const std::string &config, int servNum);
 		~Config();
 
@@ -28,7 +30,7 @@ class Config
 		std::string					_serverName;
 		std::map<int, std::string>	_errorPages;
 		int							_maxSize;
-		std::vector<Location>		_locations;
+		std::vector<Location*> _locations;
 };
 
 #endif
