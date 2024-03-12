@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/11 17:53:17 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/12 13:15:11 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,8 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw)
 	_fileName = "";
 	_status = "";
 	_boundary = "";
-	_repsonseHeader = "";
-	_repsonseBody = "";
+	_responseHeader = "";
+	_responseBody = "";
 	_done = false;
 	handleRequest(clientSocket);
 }
@@ -51,18 +51,27 @@ void	Request::captureFileName(std::string receivedData) {
 	}
 }
 
-bool	Request::fileExtension() {
-	if (_contentType.find("image/jpg") != std::string::npos)
+bool Request::fileExtension() {
+	// an image
+	if (_contentType.find("image/jpeg") != std::string::npos ||
+		_contentType.find("image/png") != std::string::npos ||
+		_contentType.find("image/gif") != std::string::npos) {
 		return true;
-	else if (_contentType.find("image/png") != std::string::npos)
-		return true;
-	else if (_contentType.find("txt") != std::string::npos)
-		return true;
-	else {
-		std::cerr << "Unsupported content type." << std::endl;
-		return false;
-		// error code int
 	}
+	// text file
+	else if (_contentType.find("text/plain") != std::string::npos ||
+				_contentType.find("text/html") != std::string::npos ||
+				_contentType.find("application/json") != std::string::npos) {
+		return true;
+	}
+	// document file
+	else if (_contentType.find("application/pdf") != std::string::npos ||
+				_contentType.find("application/msword") != std::string::npos ||
+				_contentType.find("application/vnd.openxmlformats-officedocument.wordprocessingml.document") != std::string::npos) {
+		return true;
+	}
+	std::cerr << "Unsupported content type." << std::endl;
+	return false;
 }
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
@@ -156,16 +165,18 @@ void Request::parseHeader(int clientSocket)
 }
 
 void	Request::buildHeader() {
-	_repsonseHeader = "HTTP/1.1 " + _status + "\r\n";
-	_repsonseHeader += "Content-Type: " + _contentType + "\r\n";
-	_repsonseHeader += "Content-Length: " + _contentLength + "\r\n";
-	_repsonseHeader += "\r\n"; 
+	std::stringstream	contLenStr;
+	contLenStr << _contentLength;
+	_responseHeader = "HTTP/1.1 " + _status + "\r\n";
+	_responseHeader += "Content-Type: " + _contentType + "\r\n";
+	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
+	_responseHeader += "\r\n"; 
 }
 
 void	Request::buildResponse(std::string &fileToOpen) {
 	std::fstream	fileStream(fileToOpen.c_str());
 	if (fileStream) {
-		_repsonseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
+		_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 		fileStream.close();
 		buildHeader();
 	} else {
@@ -177,7 +188,7 @@ void	Request::buildResponse(std::string &fileToOpen) {
 bool	Request::validateRequest(const std::string& method) {
 	size_t	firstSlashPos = _path.find('/');
 	size_t	secondSlashPos = _path.find('/', firstSlashPos + 1);
-	const std::string requestedLocation;
+	std::string requestedLocation;
 	if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos)
 		requestedLocation = _path.substr(firstSlashPos, secondSlashPos - firstSlashPos);
 	else
@@ -198,19 +209,36 @@ bool	Request::validateRequest(const std::string& method) {
 void	Request::generateAutoIndex(std::string &uri) {
 
 	DIR *dir = opendir(uri.c_str());
+	struct dirent	*currDir;
 
 	if (!dir) {
 		std::cerr << "Error opening directory" << std::endl;
 		return;
 	}
-	_repsonseBody += "<html>\n <head>\n <title>Index of " + uri + "</title>\n </head>\n <body>";
-	_repsonseBody += "<h1>Index of " + uri + "</h1>";
-	_repsonseBody += "<ul>\n";
+	_responseBody += "<html>\n <head>\n <title>Index of " + uri + "</title>\n </head>\n <body>";
+	_responseBody += "<h1>Index of " + uri + "</h1>";
+	_responseBody += "<ul>\n";
+	while ((currDir = readdir(dir)) != NULL) {
+		if (currDir->d_type == DT_REG && std::string(currDir->d_name).ends_with(".html")) {
+			std::string	filePath = uri + std::string(currDir->d_name);
+			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
+		}
+	}
+	_responseBody += "</ul>\n";
+	_responseBody += "</body>\n";
+	_responseBody += "</html>\n";
+	closedir(dir);
+	buildHeader();
 
-	struct dirnet	currDir;
-	
-	buildHeader()
+}
 
+std::string	Request::extractDirectory(const std::string& path) {
+	size_t lastSlashPos = path.find_last_of('/');
+	size_t secondLastSlashPos = path.find_last_of('/', lastSlashPos - 1);
+
+	if (lastSlashPos != std::string::npos && secondLastSlashPos != std::string::npos)
+		return path.substr(secondLastSlashPos, lastSlashPos - secondLastSlashPos);
+	return "";
 }
 
 void	Request::handleGetMethod(std::string &fileToOpen){
@@ -218,16 +246,21 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 	if (!validateRequest("GET") || access(fileToOpen.c_str(), R_OK) == -1)
 		return;
 	if (_path.back() == '/') { // path is a directory
-		if (!_location.getIndex.empty() && _location.isIndexFile(_path)) {
-			fileToOpen += _location.getIndex();
-			buildResponse(fileToOpen);
+		const std::string&	dir = extractDirectory(_path);
+		if (!_location.getIndex().empty() && _location.isIndexFile(dir)) {
+			const std::set<std::string>&	indexFiles = _location.getIndex();
+			for (const std::string& indexFile : indexFiles){
+				std::string	filePath = fileToOpen + indexFile;
+				if (access(filePath.c_str(), F_OK) == 0) {
+					buildResponse(filePath);
+					break ;
+				}
+			}
 		}
 		else if (_location.getDirectoryListing())
 			generateAutoIndex(fileToOpen);
-
 		else
 			setStatus("404 Not Found");
-		
 	}
 	else { // path is a file
 		
@@ -299,11 +332,11 @@ void	Request::setStatus(const std::string &status) {
 }
 
 std::string	Request::getResponseHeader() const {
-	return _repsonseHeader;
+	return _responseHeader;
 }
 
 std::string	Request::getResponseBody() const {
-	return _repsonseBody;
+	return _responseBody;
 }
 
 /* std::string Request::getHeader() const

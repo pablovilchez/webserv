@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:12:49 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/11 17:08:18 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/12 13:12:20 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,11 @@
 
 # include <iostream>
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <unistd.h>
 #include <dirent.h>
-#include <header.hpp>
+#include "header.hpp"
 
 #include "Location.hpp"
 #include "Config.hpp"
@@ -46,7 +47,10 @@ class Request
 		std::string getRaw() const;
 		std::string getResponseHeader() const;
 		std::string getResponseBody() const;
-
+		void	generateAutoIndex(std::string &uri);
+		void	buildHeader();
+		void	buildResponse(std::string &fileToOpen);
+		std::string	extractDirectory(const std::string& path);
 /* 		std::string getHeader() const;
 		std::string getMethod() const;
 		std::string getExtension() const; */
@@ -65,10 +69,10 @@ class Request
 		//size_t	_bodySize;
 		std::string	_status;
 		//Server	_server;
-		Location	*_location;
+		Location	_location;
 		Config		_config;
-		std::string	_repsonseHeader;
-		std::string	_repsonseBody;
+		std::string	_responseHeader;
+		std::string	_responseBody;
 		bool		_done;
 };
 
