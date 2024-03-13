@@ -7,7 +7,7 @@ SRC = src/
 SRCS = $(wildcard $(SRC)*.cpp)
 
 OBJS = $(addprefix obj/,$(notdir $(SRCS:.cpp=.o)))
-CFLAG = -Wall -Wextra -Werror -std=c++98
+CFLAG = -Wall -Wextra -Werror -std=c++98 #-fsanitize=address
 HEADERS = -I ./inc
 
 all: $(NAME)

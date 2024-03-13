@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/12 16:26:22 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/13 16:49:31 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw) {
 	_responseBody = "";
 	_done = false;
 	_redirectionLocation = "";
+	fileToOpen = "";
 	handleRequest(clientSocket);
 }
 
@@ -52,20 +53,21 @@ void	Request::captureFileName(std::string receivedData) {
 	}
 }
 
-bool	Request::fileExtension(const std::string& contentType) {
-	std::unordered_map<std::string, std::string> contentTypeExtensions = {
-		{"image/jpeg", ".jpg"},
-		{"image/png", ".png"},
-		{"image/gif", ".gif"},
-		{"text/plain", ".txt"},
-		{"text/html", ".html"},
-		{"application/json", ".json"},
-		{"application/pdf", ".pdf"},
-		{"application/msword", ".doc"},
-		{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"}
-	};
+bool Request::fileExtension(const std::string& contentType) {
+	std::map<std::string, std::string> contentTypeExtensions;
+	std::cout << "in filext: FILE'S type: " << contentType << std::endl;
+	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpg"));
+	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
+	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
+	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
+	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
+	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
+	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
+	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
+	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
+	contentTypeExtensions.insert(std::make_pair("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"));
 
-	std::unordered_map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
+	std::map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
 	if (it != contentTypeExtensions.end()) {
 		_extension = it->second;
 		return true;
@@ -104,10 +106,10 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	std::string receivedData(buf, bytesReceived);
 	size_t boundaryPos = receivedData.find(boundary);
 
-	if (_contentLength == 0) {
+/* 	if (_contentLength == 0) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
-	}
+	} */
 	if (_body.empty())
 		_body.reserve(_contentLength);
 	if (i == 0 && boundaryPos != std::string::npos) {
@@ -119,16 +121,19 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 
 	// Save the file with the appropriate extension
 	if (receivedData.find(_boundary + "--") != std::string::npos) {
+		//std::cout << "\n\nBOUNDRY" << _boundary << std::endl;
 		if (fileExtension(_contentType) == true) {
 			std::ofstream outputFile(_fileName, std::ios::binary);
 			if (outputFile.is_open()) {
 				outputFile.write(_body.data(), _body.size());
 				outputFile.close();
+				std::cout << "\n\nfile created: \n\n\n" << _contentType << std::endl; 
 			} else
 				std::cerr << "Error opening file for writing." << std::endl;
 		}
 		//_body.clear();
 		//_done = true;
+		build
 	}
 }
 
@@ -150,10 +155,15 @@ void Request::parseHeader(int clientSocket)
 		}
 		pos = end + 2;
 	}
-	if (_method != "GET" || _method != "POST" || _method != "DELETE" ||
-		_path[0] != '/' || _version != "HTTP/1.1")
+	if ((_method != "GET" && _method != "POST" && _method != "DELETE") || _version != "HTTP/1.1")
 			return (setStatus("400 Bad Request"));
+	fileToOpen = extractPathFromUrl(_path);
+	if (access(fileToOpen.c_str(), F_OK) == -1) {
+		std::cout << "\n\nvalue: " << fileToOpen << std::endl; 
+		return (setStatus("404 Not Found"));
+	}
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
+		std::cout << "\n\nvalue: " << _version << std::endl; 
 		std::string	line = _raw.substr(pos, end - pos);
 		size_t	colPos = line.find(':');
 		if (colPos != std::string::npos) {
@@ -164,7 +174,11 @@ void Request::parseHeader(int clientSocket)
 			else if (key == "Content-Length")
 				_contentLength = atoi(value.c_str());
 			else if (key == "Content-Type") {
-				_contentType = value;
+				size_t semicolPos = value.find(';');
+				if (semicolPos != std::string::npos)
+					_contentType = value.substr(0, semicolPos);
+				else
+					_contentType = value;
 				size_t bPos = value.find("boundary=");
 				if (bPos != std::string::npos) {
 					_boundary = value.substr(bPos + 9);
@@ -193,7 +207,7 @@ void	Request::buildHeader() {
 	std::stringstream	contLenStr;
 	contLenStr << _contentLength;
 	_responseHeader = "HTTP/1.1 " + _status + "\r\n";
-	if (_redirectionLocation)
+	if (_redirectionLocation != "")
 		_responseHeader += "Location: " + _redirectionLocation + "\r\n";
 	_responseHeader += "Content-Type: " + _contentType + "\r\n";
 	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
@@ -246,7 +260,7 @@ void	Request::generateAutoIndex(std::string &uri) {
 	_responseBody += "<h1>Index of " + uri + "</h1>";
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
-		if (currDir->d_type == DT_REG && std::string(currDir->d_name).ends_with(".html")) {
+		if (currDir->d_type == DT_REG && std::string(currDir->d_name).find(".html") != std::string::npos) {
 			std::string	filePath = uri + std::string(currDir->d_name);
 			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
 		}
@@ -285,8 +299,10 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 		}
 		else if (!_location.getIndex().empty() && _location.isIndexFile(dir)) {
 			const std::set<std::string>&	indexFiles = _location.getIndex();
-			for (const std::string& indexFile : indexFiles){
-				std::string	filePath = fileToOpen + indexFile;
+			
+			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
+				const std::string&	currIndexFile = *it;
+				std::string	filePath = fileToOpen + currIndexFile;
 				if (access(filePath.c_str(), F_OK) == 0) {
 					buildResponse(filePath);
 					break ;
@@ -303,8 +319,8 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			// if (!_location.getCgiExtension().empty())
 				// Handle CGI processing
 			buildResponse(fileToOpen);
-			else
-				setStatus("500 Internal Server Error"); // Unable to open file
+/* 			else
+				setStatus("500 Internal Server Error"); // Unable to open file */
 		}
 	}
 	_done = true;
@@ -313,13 +329,19 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 void	Request::handlePostMethod(){
 	if (!_location.isAcceptedMethod("POST"))
 		setStatus("403 Forbiden");
-	if (_maxSize < _contentLength)
-		setStatus();
+	else if (_config.getMaxSize() < _contentLength)
+		setStatus("413 Request Entity Too Large");
+/* 	else
+		handleCgi(); */
 }
 
-void	Request::handleDeleteMethod(std::string &fileToOpen){
-	if (!_location.isAcceptedMethod("DELETE"))
-		setStatus("403 Forbiden");
+void	Request::handleDeleteMethod(std::string &fileToDelete){
+	if (!validateRequest("DELETE"))
+		return;
+	else if (remove(fileToDelete.c_str()) != 0)
+		setStatus("500 Internal Server Error");
+	else
+		setStatus("204 No Content");
 }
 
 std::string	Request::extractPathFromUrl(std::string& url) {
@@ -330,28 +352,29 @@ std::string	Request::extractPathFromUrl(std::string& url) {
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
-			return getRoot() + path;
+			return (_location.getRoot() + path);
 	}
-	return url;
+	return (_location.getRoot());
 }
 
 void	Request::handleRequest(int clientSocket) {
-	std::string	fileToOpen;
+/* 	std::string	fileToOpen;
 
 	fileToOpen = extractPathFromUrl(_path);
 	if (access(fileToOpen.c_str(), F_OK) == -1)
-		setStatus("404 Not Found");
+		setStatus("404 Not Found"); */
 	parseHeader(clientSocket);
-	if (_method == "GET")
-		handleGetMethod(fileToOpen);
-	else if (_method == "POST")
-		handlePostMethod();
-	else if (_method == "DELETE")
-		handleDeleteMethod(fileToOpen);
-	else
-		setStatus("405 Method Not Allowed");
-	if (!_done)
-		buildResponse();
+	if (_status == "") {
+		if (_method == "GET")
+			handleGetMethod(fileToOpen);
+		else if (_method == "POST")
+			handlePostMethod();
+		else if (_method == "DELETE")
+			handleDeleteMethod(fileToOpen);
+		else
+			setStatus("405 Method Not Allowed");
+	}
+	buildResponse(fileToOpen);
 }
 
 void Request::printData()
