@@ -11,5 +11,6 @@ int main(int argc, char **argv) {
         return 1;
     }
     WebServer server1(argv[1]);
+    server1.initService();
     return 0;
 }

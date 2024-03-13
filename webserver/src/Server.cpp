@@ -28,43 +28,6 @@ const Config &Server::getConfig() const {
 	return *_config;
 }
 
-/* int getServerSocket() {
-	int listening = socket(PF_INET, SOCK_STREAM, 0);
-	if (listening == -1) {
-		perror("Can't create a socket");
-		_exit(1);
-	}
-	return listening;
-}
- */
-/* void Server::_fillServerAddr() {
-	_server_addr.sin_family = AF_INET;
-	_server_addr.sin_port = htons(PORT);
-	_server_addr.sin_addr.s_addr = INADDR_ANY;
-	memset(&(_server_addr.sin_zero), '\0', 8);
-} */
-
-/* void printServerInfo() {
-	char hostName[1024];
-    gethostname(hostName, 1024);
-    std::cout << "Server started on " << hostName << std::endl;
-
-	hostent* host = gethostbyname(hostName);
-	if (host == NULL) {
-		herror("gethostbyname");
-		_exit(1);
-	}
-
-	std::cout << "IP Address: " << inet_ntoa(*(in_addr*)*host->h_addr_list) << std::endl;
-}
- */
-/* void createNewpollfd(int some_socket, std::vector<pollfd> &_poll_fds) {
-	pollfd listen_pollfd;
-	listen_pollfd.fd = some_socket;
-	listen_pollfd.events = POLLIN;
-	_poll_fds.push_back(listen_pollfd);
-} */
-
 /* void Server::_startServerLoop() {
 	createNewpollfd(_listen_sock, _poll_fds);
 
@@ -185,34 +148,5 @@ const Config &Server::getConfig() const {
 			}
 		}
 	}
-}
-
-void Server::startServer() {
-	_poll_fds.reserve(MAX_CLIENTS);
-	int yes = 1;
-	if (setsockopt(_listen_sock, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(int)) == -1) {
-		perror("setsockopt failed");
-    	_exit(-1);
-	}
-
-	if (setsockopt(_listen_sock, SOL_SOCKET, SO_BROADCAST,  &yes, sizeof(int)) == -1) {
-		perror("setsockopt failed");
-    	_exit(-1);
-	}
-
-	if(bind(_listen_sock, reinterpret_cast<sockaddr*>(&_server_addr), sizeof(_server_addr)) == -1) {
-		perror("Can't bind to IP/port");
-		_exit(-1);
-	}
-
-	if (listen(_listen_sock, SOMAXCONN) == -1) {
-		perror("Can't listen");
-		_exit (-1);
-	}
-
-	printServerInfo();
-
-	_startServerLoop();
-} */
-
+}*/
 

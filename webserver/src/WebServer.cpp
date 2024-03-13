@@ -1,61 +1,25 @@
 #include "WebServer.hpp"
 
-WebServer::WebServer() {
+/*______________________________UTILS-FUNCTIONS-START______________________________*/
 
-}
+/*
+// It uses forbidden functions -> should be redone
+void printServersInfo(int port, std::vector<const Server*> servers) {
+	for (std::vector<const Server*>::const_iterator it_serv = servers.begin(); it_serv != servers.end(); it_serv++) {
+		char hostName[1024];
+		gethostname(hostName, 1024);
+		std::cout << "Server: " << (*it_serv)->getConfig().getServerName() << ":" << port << " started on " << hostName << std::endl;
 
-WebServer::WebServer(const std::string &file) {
-	parseConfigFile(file);
-}
-
-WebServer::WebServer(const WebServer &other) {
-	std::vector<const Server*>::const_iterator vector_it;
-	for (vector_it = other._servers.begin(); vector_it != other._servers.end(); vector_it++) {
-		_servers.push_back(*vector_it);
-	}
-
-	std::vector<pollfd>::const_iterator it;
-	for (it = other._poll_fds.begin(); it != other._poll_fds.end(); it++) {
-		_poll_fds.push_back(*it);
-	}
-
-	std::map<int, std::vector<const Server*> >::const_iterator map_it;
-	std::map<int, std::vector<const Server*> >::const_iterator end = other._portsMap.end();
-	for (map_it = other._portsMap.begin(); map_it != end; map_it++) {
-		_portsMap[map_it->first] = map_it->second;
-	}
-}
-
-WebServer &WebServer::operator=(const WebServer &other) {
-	if (this != &other) {
-		_servers.clear();
-		std::vector<const Server*>::const_iterator vector_it;
-		for (vector_it = other._servers.begin(); vector_it != other._servers.end(); vector_it++) {
-			_servers.push_back(*vector_it);
+		hostent* host = gethostbyname(hostName);
+		if (host == NULL) {
+		herror("gethostbyname");
+		_exit(1);
 		}
 
-		_poll_fds.clear();
-		std::vector<pollfd>::const_iterator it;
-		for (it = other._poll_fds.begin(); it != other._poll_fds.end(); it++) {
-			_poll_fds.push_back(*it);
-		}
-
-		_portsMap.clear();
-		std::map<int, std::vector<const Server*> >::const_iterator map_it;
-		std::map<int, std::vector<const Server*> >::const_iterator end = other._portsMap.end();
-		for (map_it = other._portsMap.begin(); map_it != end; map_it++) {
-			_portsMap[map_it->first] = map_it->second;
-		}
-	}
-	return *this;
-}
-
-WebServer::~WebServer() {
-	std::vector<const Server*>::const_iterator it;
-	for (it = _servers.begin(); it != _servers.end(); it++) {
-		delete *it;
+		std::cout << "IP Address: " << inet_ntoa(*(in_addr*)*host->h_addr_list) << std::endl;
 	}
 }
+*/
 
 bool web_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
@@ -65,6 +29,70 @@ bool web_isComment(const std::string &line) {
 	}
 	return true;
 }
+
+void insertNewPollfd(std::vector<pollfd> &_poll_fds, int socket) {
+	pollfd listen_pollfd;
+	listen_pollfd.fd = socket;
+	listen_pollfd.events = POLLIN;
+	_poll_fds.push_back(listen_pollfd);
+}
+
+int createNewListener(int port) {
+	int listening = socket(PF_INET, SOCK_STREAM, 0);
+	if (listening == -1) {
+		perror("Can't create a socket");
+		_exit(1);
+	}
+
+	int yes = 1;
+	if (setsockopt(listening, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(int)) == -1) {
+		perror("setsockopt failed");
+		_exit(-1);
+	}
+
+	if (setsockopt(listening, SOL_SOCKET, SO_BROADCAST,  &yes, sizeof(int)) == -1) {
+		perror("setsockopt failed");
+		_exit(-1);
+	}
+
+	struct sockaddr_in _server_addr;
+	_server_addr.sin_family = AF_INET;
+	_server_addr.sin_port = htons(port);
+	_server_addr.sin_addr.s_addr = INADDR_ANY;
+	memset(&(_server_addr.sin_zero), '\0', 8);
+
+	if(bind(listening, reinterpret_cast<sockaddr*>(&_server_addr), sizeof(_server_addr)) == -1) {
+		perror("Can't bind to IP/port");
+		_exit(-1);
+	}
+
+	if (listen(listening, SOMAXCONN) == -1) {
+		perror("Can't listen");
+		_exit (-1);
+	}
+
+	return listening;
+}
+
+void initListeners(std::map<int, std::vector<const Server*> >& _portsMap, std::vector<pollfd>& _poll_fds, std::vector<int>& _listeners) {
+	std::map<int, std::vector<const Server*> >::const_iterator it;
+	std::map<int, std::vector<const Server*> >::const_iterator end = _portsMap.end();
+	for (it = _portsMap.begin(); it != end; it++) {
+		int listening = createNewListener(it->first);
+
+		// Print server info
+		//printServersInfo(it->first, it->second);
+
+		_listeners.push_back(listening);
+		insertNewPollfd(_poll_fds, listening);
+	}
+}
+
+/*______________________________UTILS-FUNCTIONS-END______________________________*/
+
+
+
+/*______________________________CLASS-METHODS-START______________________________*/
 
 void WebServer::parseConfigFile(const std::string &file) {
 	std::ifstream fileStream(file.c_str());
@@ -109,15 +137,133 @@ void WebServer::parseConfigFile(const std::string &file) {
 		}
 	}
 	fileStream.close();
-	std::map<int, std::vector<const Server*> >::const_iterator it2;
-	for (it2 = _portsMap.begin(); it2 != _portsMap.end(); it2++) {
-		std::cout << "Port: " << it2->first << std::endl;
-		std::vector<const Server*>::const_iterator it3 = it2->second.begin();
-		for (it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
-			std::cout << "Server: " << (*it3)->getConfig().getServerName() << std::endl;
-		}
-	}
-	std::cout << "Server size:" << _servers.size() << std::endl;
-	if(DEBUG) std::cout << "WebServer:" << servers << " servers created" << std::endl;
 }
 
+void WebServer::initService() {
+	::initListeners(_portsMap, _poll_fds, _listeners);
+
+	std::string response;
+	while (1) {
+		int ret = poll(reinterpret_cast<pollfd *>(&_poll_fds[0]), static_cast<unsigned int>(_poll_fds.size()), -1);
+		if (ret == -1) {
+			perror("poll failed");
+			_exit(1);
+		}
+		std::vector<pollfd>::iterator it;
+        std::vector<pollfd>::iterator end = _poll_fds.end();
+
+		char buffer[1024];
+		for (it = _poll_fds.begin(); it != end; it++) {
+			if (it->revents & POLLIN) {
+				std::vector<int>::const_iterator it_listen;
+				for (it_listen = _listeners.begin(); it_listen != _listeners.end(); it_listen++) {
+					if (it->fd == *it_listen) {
+						sockaddr_in client;
+						socklen_t addr_size = sizeof(sockaddr_in);
+
+						int client_sock = accept(*it_listen, reinterpret_cast<sockaddr*>(&client), &addr_size);
+						if (client_sock == -1) {
+							perror("Can't accept client");
+							break;
+						}
+						if (_poll_fds.size()-1 < MAXCLIENTS) {
+							insertNewPollfd(_poll_fds, client_sock);
+							std::cout << "New client connected: " << client_sock << std::endl;
+						}
+						else {
+							std::cout << "Server is full" << std::endl;
+							send(client_sock, "too many clients!!!", 20, 0);
+							close(client_sock);
+						}
+						break;
+					}
+				}
+				if (it_listen == _listeners.end()) {
+					int bytes = recv(it->fd, buffer, 1024, 0);
+					if (bytes <= 0) {
+						if (bytes == 0) {
+							std::cout << "Client disconnected: " << it->fd << std::endl;
+						}
+						else {
+							perror("Unable to read from socket");
+						}
+						std::cout << "Closing socket: " << it->fd << std::endl;
+						close(it->fd);
+						_poll_fds.erase(it);
+						std::cout << "Fds array size: " << _poll_fds.size() << std::endl;
+					}
+					else {
+						std::istringstream request(buffer);
+						std::string request_line;
+						getline(request, request_line);
+
+						std::istringstream iss(request_line);
+						std::string method;
+						std::string page;
+						iss >> method >> page;
+
+						std::cout << "Received:___________\n " << request_line << std::endl;
+						if (method == "GET") {
+							if (page == "/") {
+								std::string page_html = "<!DOCTYPE html>"
+												"<html lang=\"en\">"
+												"<head>"
+												"    <meta charset=\"UTF-8\">"
+												"    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+												"    <title>Error Page</title>"
+												"</head>"
+												"<body>"
+												"    <h1>Hello</h1>"
+												"    <h2>World</h2>"
+												"    <a href=\"/\">Back</a>"
+												"</body>"
+												"</html>";
+								response = "HTTP/1.1 200 OK\r\n";
+								std::stringstream ss;
+								ss << page_html.size();
+								response += "Content-Type: text/html\r\n";
+								response += "Content-Length: " + ss.str() + "\r\n";
+								response += "\r\n"; // End of headers
+								response += page_html; // Message body
+							}
+							else {
+								response = "HTTP/1.1 200 OK\r\n";
+								response += "Content-Type: text/plain\r\n";
+								response += "Content-Length: 0\r\n";
+								response += "\r\n"; // End of headers
+							}
+							it->events = POLLOUT;
+						}
+					}
+				}
+			}
+			else if (it->revents & POLLOUT) {
+				std::cout << "Response: PAGE \n" << std::endl;
+				send(it->fd, response.c_str(), response.size(), 0);
+				std::cout << "Client disconnected: " << it->fd << std::endl;
+				std::cout << "Closing socket: " << it->fd << std::endl;
+				close(it->fd);
+				_poll_fds.erase(it);
+				std::cout << "Fds array size: " << _poll_fds.size() << std::endl;
+				memset(buffer, 0, 1024);
+				response.clear();
+			}
+/* 			else if (it->revents & POLLERR) {
+				std::vector<int>::const_iterator it_listen;
+				for (it_listen = _listeners.begin(); it_listen != _listeners.end(); it_listen++) {
+					if (it->fd == *it_listen) {
+						perror("listen socket error");
+						_exit(1);
+					}
+                	else {
+						perror("client socket error");
+						close(it->fd);
+						_poll_fds.erase(it);
+                	}
+				}
+			} */
+		}
+	}
+}
+
+/*______________________________CLASS-METHODS-END______________________________*/
