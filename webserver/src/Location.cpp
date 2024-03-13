@@ -4,6 +4,69 @@ Location::Location() : _directoryListing(false) {
 	defaultConfig();
 }
 
+Location::Location(const Location &other) {
+	_location = other._location;
+
+	for (std::set<std::string>::const_iterator it = other._acceptedMethods.begin(); it != other._acceptedMethods.end(); it++) {
+		_acceptedMethods.insert(*it);
+	}
+
+	_root = other._root;
+
+	for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
+		_index.insert(*it);
+	}
+
+	_directoryListing = other._directoryListing;
+
+	for (std::map<std::string, std::string>::const_iterator it = other._cgiExtension.begin(); it != other._cgiExtension.end(); it++) {
+		_cgiExtension.insert(std::make_pair(it->first, it->second));
+	}
+
+	for (std::map<int, std::string>::const_iterator it = other._return.begin(); it != other._return.end(); it++) {
+		_return.insert(std::make_pair(it->first, it->second));
+	}
+}
+
+Location::Location(const std::string &config) : _directoryListing(false) {
+	parseConfig(config);
+}
+
+Location& Location::operator=(const Location &other) {
+	if (this != &other) {
+		_location = other._location;
+
+		_acceptedMethods.clear();
+		for (std::set<std::string>::const_iterator it = other._acceptedMethods.begin(); it != other._acceptedMethods.end(); it++) {
+			_acceptedMethods.insert(*it);
+		}
+
+		_root = other._root;
+
+		_index.clear();
+		for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
+			_index.insert(*it);
+		}
+
+		_directoryListing = other._directoryListing;
+
+		_cgiExtension.clear();
+		for (std::map<std::string, std::string>::const_iterator it = other._cgiExtension.begin(); it != other._cgiExtension.end(); it++) {
+			_cgiExtension.insert(std::make_pair(it->first, it->second));
+		}
+
+		_return.clear();
+		for (std::map<int, std::string>::const_iterator it = other._return.begin(); it != other._return.end(); it++) {
+			_return.insert(std::make_pair(it->first, it->second));
+		}
+	}
+	return *this;
+}
+
+Location::~Location() {
+
+}
+
 void Location::defaultConfig() {
 	if(_location.empty())
 		_location= "/default";
@@ -94,12 +157,6 @@ void Location::parseConfig(const std::string &config) {
 	defaultConfig();
 }
 
-Location::Location(const std::string &config) : _directoryListing(false) {
-	parseConfig(config);
-}
-
-Location::~Location() { }
-
 void Location::printData() const {
 	std::cout << "Location  " << _location << std::endl;
 	std::cout << "{" << std::endl;
@@ -127,38 +184,6 @@ void Location::printData() const {
 		std::cout << it_3->first;
 	std::cout << std::endl << "}" << std::endl;
 }
-
-/* 
-// SETTERS ---------------------------------
-void Location::setLocation(const std::string &path) {
-	_location = path;
-}
-
-void Location::setAcceptedMethod(const std::string &method) {
-	_acceptedMethods.insert(method);
-}
-
-void Location::setRoot(const std::string &rootPath) {
-	_root = rootPath;
-}
-
-void Location::setIndex(const std::string &index) {
-	_index.insert(index);
-}
-
-void Location::setDirectoryListing(const bool &value) {
-	_directoryListing = value;
-}
-
-void Location::setCgiExtension(const std::string &extension, const std::string &executable) {
-	_cgiExtension[extension] = executable;
-}
-
-void Location::setReturn(const int &httpCode, const std::string &redir) {
-	_return[httpCode] = redir;
-}
- */
-
 
 // GETTERS ---------------------------------
 std::string Location::getLocation() const {

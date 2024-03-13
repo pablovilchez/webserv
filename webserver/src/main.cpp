@@ -10,7 +10,6 @@ int main(int argc, char **argv) {
         std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
         return 1;
     }
-    Config config;
-    //WebServer webserver(argv[1]);
+    WebServer server1(argv[1]);
     return 0;
 }

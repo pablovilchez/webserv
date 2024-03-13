@@ -1,28 +1,31 @@
 #include "Server.hpp"
 
-Server::Server() : _config() {
-
+Server::Server() {
+	_config = new Config();
 }
 
-Server::Server(const Server &other) : _config(other.getConfig()) {
-
+Server::Server(const Server &other) {
+	_config = new Config(*other._config);
 }
 
 Server &Server::operator=(const Server &other) {
-	_config = other.getConfig();
+	if (this != &other) {
+		delete _config;
+		_config = new Config(*other._config);
+	}
 	return *this;
 }
 
-Server::Server(const std::string &config, int servNum) : _config(config, servNum) {
-
+Server::Server(const std::string &config, int servNum) {
+	_config = new Config(config ,servNum);
 }
 
 Server::~Server() {
-
+	delete _config;
 }
 
 const Config &Server::getConfig() const {
-	return _config;
+	return *_config;
 }
 
 /* int getServerSocket() {

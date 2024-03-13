@@ -17,7 +17,7 @@ class Config
 		void parseConfig(const std::string &config, int servNum);
 		void printData();
 
-		void setLocation(Location *location);
+		void setLocation(const Location *location);
 
 		std::set<int> getPort() const;
 		std::string getServerName() const;
@@ -26,11 +26,11 @@ class Config
 		const Location &getLocation(const std::string &location) const;
 
 	private:
-		std::set<int>				_port;
-		std::string					_serverName;
-		std::map<int, std::string>	_errorPages;
-		int							_maxSize;
-		std::vector<Location*> _locations;
+		std::set<int>					_port;
+		std::string						_serverName;
+		std::map<int, std::string>		_errorPages;
+		int								_maxSize;
+		std::vector<const Location*>	_locations;
 };
 
 #endif

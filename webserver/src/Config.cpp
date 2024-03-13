@@ -2,21 +2,17 @@
 
 Config::Config() : _maxSize(0) {
 	defaultConfig(0);
-	Location *newLocation = new Location();
+	const Location *newLocation = new Location();
 	_locations.push_back(newLocation);
 }
 
 Config::Config(const std::string &config, int servNum) {
-	(void) config;
-	(void) servNum;
-	/* parseConfig(config, servNum);
-	if (DEBUG) printData(); */
+	parseConfig(config, servNum);
+	if (DEBUG) printData();
 }
 
-
 Config::Config(const Config &other) {
-	(void) other;
-/* 	std::set<int>::iterator it_set;
+	std::set<int>::iterator it_set;
 	for (it_set = other._port.begin(); it_set != other._port.end(); it_set++) {
 		_port.insert(*it_set);
 	}
@@ -30,15 +26,14 @@ Config::Config(const Config &other) {
 
 	_maxSize = other._maxSize;
 
-	std::vector<Location>::const_iterator it_vec;
+	std::vector<const Location*>::const_iterator it_vec;
 	for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
 		_locations.push_back(*it_vec);
-	} */
+	}
 }
 
 Config& Config::operator=(const Config &other) {
-	(void) other;
-/* 	if (this != &other) {
+	if (this != &other) {
 		_port.clear();
 		std::set<int>::iterator it_set;
 		for (it_set = other._port.begin(); it_set != other._port.end(); it_set++) {
@@ -56,17 +51,17 @@ Config& Config::operator=(const Config &other) {
 		_maxSize = other._maxSize;
 
 		_locations.clear();
-		std::vector<Location>::const_iterator it_vec;
+		std::vector<const Location*>::const_iterator it_vec;
 		for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
 			_locations.push_back(*it_vec);
 		}
-	} */
+	}
 	return *this;
 }
 
 Config::~Config() {
-	std::vector<Location*>::iterator it;
-	std::vector<Location*>::iterator end = _locations.end();
+	std::vector<const Location*>::const_iterator it;
+	std::vector<const Location*>::const_iterator end = _locations.end();
 	for (it = _locations.begin(); it != end; it++) {
 		delete *it;
 	}
@@ -83,16 +78,16 @@ void Config::defaultConfig(int servNum) {
 		_maxSize = 1024 * 10;
 }
 
-/* bool conf_isComment(const std::string &line) {
+bool conf_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
 	{
 		if (!std::isspace(line[i]))
 			return line[i] == '#';
 	}
 	return true;
-} */
+}
 
-/* void Config::parseConfig(const std::string &config, int servNum) {
+void Config::parseConfig(const std::string &config, int servNum) {
 	std::istringstream stream(config);
 	std::string line;
 	std::string key;
@@ -146,8 +141,8 @@ void Config::defaultConfig(int servNum) {
 				locatConfig += line;
 				locatConfig += "\n";
 			}
-			Location *newLocation = new Location(locatConfig);
-			_locations.push_back(*newLocation);
+			const Location *newLocation = new Location(locatConfig);
+			_locations.push_back(newLocation);
 		}
 		else if(key == "}")
 			break;
@@ -155,37 +150,44 @@ void Config::defaultConfig(int servNum) {
 			std::cerr << "Error: Unknown key: " << key << std::endl;
 	}
 	defaultConfig(servNum);
-} */
+}
 
-/* void Config::printData() {
+void Config::printData() {
 	std::cout << "Server name:  " << _serverName << std::endl;
 	std::cout << "Ports:  ";
-	for(std::set<int>::iterator it = _port.begin(); it != _port.end(); it++)
-		std::cout << *it << "  ";
+
+	std::set<int>::iterator it_set;
+	for(it_set = _port.begin(); it_set != _port.end(); it_set++)
+		std::cout << *it_set << "  ";
+
 	std::cout << std::endl;
 	std::cout << "Error pages:  ";
-	std::map<int, std::string>::iterator it;
-	for(it = _errorPages.begin(); it != _errorPages.end(); it++)
-		std::cout << it->first << "  ";
+
+	std::map<int, std::string>::iterator it_map;
+	for(it_map = _errorPages.begin(); it_map != _errorPages.end(); it_map++)
+		std::cout << it_map->first << "  ";
+
 	std::cout << std::endl;
 	std::cout << "Max Size:  " << _maxSize << std::endl;
-	for(std::vector<Location>::iterator it = _locations.begin(); it != _locations.end(); it++)
-		it->printData();
-} */
 
-/* void Config::setLocation(Location *location) {
+	std::vector<const Location*>::const_iterator it_vector;
+	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++)
+		(*it_vector)->printData(); // Corrected the parenthesis placement
+}
+
+void Config::setLocation(const Location *location) {
 	_locations.push_back(location);
-} */
+}
 
-/* std::set<int> Config::getPort() const {
+std::set<int> Config::getPort() const {
 	return _port;
 }
 
 std::string Config::getServerName() const {
 	return _serverName;
-} */
+}
 
-/* std::string Config::getErrorPage(const int &errorCode) const {
+std::string Config::getErrorPage(const int &errorCode) const {
 	std::map<int, std::string>::const_iterator it;
 	it = _errorPages.find(errorCode);
 	if (it != _errorPages.end())
@@ -198,12 +200,12 @@ int Config::getMaxSize() const {
 }
 
 const Location& Config::getLocation(const std::string &location) const {
-	std::vector<Location>::const_iterator it;
-	for(it = _locations.begin(); it != _locations.end(); it++)
-	{
-		if(it->getLocation() == location)
-			return *it;
+	std::vector<const Location*>::const_iterator it_vector;
+	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++) {
+		if((*it_vector)->getLocation() == location)
+			return **it_vector;
 	}
 	static const Location invalidLocation("null");
-	return invalidLocation;
-} */
+    return invalidLocation;
+}
+

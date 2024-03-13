@@ -6,7 +6,8 @@
 
 class Server {
 	private:
-		Config	_config;
+		const Config *_config;
+
 	public:
 		Server();
 		Server(const Server &src);
