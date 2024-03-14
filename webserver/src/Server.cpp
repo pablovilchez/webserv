@@ -1,152 +1,211 @@
 #include "Server.hpp"
 
-Server::Server() {
-	_config = new Config();
+Server::Server() : _maxSize(0) {
+	defaultServer(0);
+	const Location *newLocation = new Location();
+	_locations.push_back(newLocation);
+}
+
+Server::Server(const std::string &serverConfig, int servNum) {
+	parseServer(serverConfig, servNum);
+	if (DEBUG) printData();
 }
 
 Server::Server(const Server &other) {
-	_config = new Config(*other._config);
+	std::set<int>::iterator it_set;
+	for (it_set = other._port.begin(); it_set != other._port.end(); it_set++) {
+		_port.insert(*it_set);
+	}
+
+	_serverName = other._serverName;
+
+	std::map<int, std::string>::const_iterator it_map;
+	for (it_map = other._errorPages.begin(); it_map != other._errorPages.end(); it_map++) {
+		_errorPages.insert(std::make_pair(it_map->first, it_map->second));
+	}
+
+	_maxSize = other._maxSize;
+
+	std::vector<const Location*>::const_iterator it_vec;
+	for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
+		_locations.push_back(*it_vec);
+	}
 }
 
-Server &Server::operator=(const Server &other) {
+Server& Server::operator=(const Server &other) {
 	if (this != &other) {
-		delete _config;
-		_config = new Config(*other._config);
+		_port.clear();
+		std::set<int>::iterator it_set;
+		for (it_set = other._port.begin(); it_set != other._port.end(); it_set++) {
+			_port.insert(*it_set);
+		}
+
+		_serverName = other._serverName;
+
+		_errorPages.clear();
+		std::map<int, std::string>::const_iterator it_map;
+		for (it_map = other._errorPages.begin(); it_map != other._errorPages.end(); it_map++) {
+			_errorPages.insert(std::make_pair(it_map->first, it_map->second));
+		}
+
+		_maxSize = other._maxSize;
+
+		_locations.clear();
+		std::vector<const Location*>::const_iterator it_vec;
+		for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
+			_locations.push_back(*it_vec);
+		}
 	}
 	return *this;
 }
 
-Server::Server(const std::string &config, int servNum) {
-	_config = new Config(config ,servNum);
-}
-
 Server::~Server() {
-	delete _config;
-}
-
-const Config &Server::getConfig() const {
-	return *_config;
-}
-
-/* void Server::_startServerLoop() {
-	createNewpollfd(_listen_sock, _poll_fds);
-
-	while(1) {
-		int ret = poll(reinterpret_cast<pollfd *>(&_poll_fds[0]), static_cast<unsigned int>(_poll_fds.size()), -1);
-		if (ret == -1) {
-			perror("poll failed");
-			_exit(1);
-		}
-
-        std::vector<pollfd>::iterator it;
-        std::vector<pollfd>::iterator end = _poll_fds.end();
-
-		for (it = _poll_fds.begin(); it != end; it++) {
-			if (it->revents & POLLIN) {
-				if (it->fd == _listen_sock) {
-					sockaddr_in client;
-					socklen_t addr_size = sizeof(sockaddr_in);
-
-					int client_sock = accept(_listen_sock, reinterpret_cast<sockaddr*>(&client), &addr_size);
-					if (client_sock == -1) {
-						perror("Can't accept client");
-						continue;
-					}
-					if (_poll_fds.size()-1 < MAX_CLIENTS)
-                    {
-						createNewpollfd(client_sock, _poll_fds);
-						std::cout << "New client connected: " << client_sock << std::endl;
-					}
-					else
-					{
-						std::cout << "Server is full" << std::endl;
-						send(client_sock, "too many clients!!!", 20, 0);
-						close(client_sock);
-						continue;
-                    }
-				}
-				else {
-					char buffer[1024];
-					int bytes = recv(it->fd, buffer, 1024, 0);
-					if (bytes <= 0) {
-						if (bytes == 0) {
-							std::cout << "Client disconnected: " << it->fd << std::endl;
-						}
-						else {
-							perror("Unable to read from socket");
-						}
-						std::cout << "Closing socket: " << it->fd << std::endl;
-						close(it->fd);
-						_poll_fds.erase(it);
-						std::cout << "Fds array size: " << _poll_fds.size() << std::endl;
-					}
-					else {
-						std::istringstream request(buffer);
-						std::string request_line;
-						getline(request, request_line);
-
-						std::istringstream iss(request_line);
-						std::string method;
-						std::string page;
-						iss >> method >> page;
-
-						std::cout << "Received:___________\n " << request_line << std::endl;
-						if (method == "GET") {
-							if (page == "/") {
-								std::string page_html = "<!DOCTYPE html>"
-												"<html lang=\"en\">"
-												"<head>"
-												"    <meta charset=\"UTF-8\">"
-												"    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-												"    <title>Error Page</title>"
-												"</head>"
-												"<body>"
-												"    <h1>Hello</h1>"
-												"    <h2>World</h2>"
-												"    <a href=\"/\">Back</a>"
-												"</body>"
-												"</html>";
-								std::string response = "HTTP/1.1 200 OK\r\n";
-								std::stringstream ss;
-								ss << page_html.size();
-								response += "Content-Type: text/html\r\n";
-								response += "Content-Length: " + ss.str() + "\r\n";
-								response += "Connection: close\r\n";
-								response += "\r\n"; // End of headers
-								response += page_html; // Message body
-
-								std::cout << "Response: PAGE \n" << std::endl;
-								send(it->fd, response.c_str(), response.size(), 0);
-							}
-							else {
-								std::string response = "HTTP/1.1 200 OK\r\n";
-								response += "Content-Type: text/plain\r\n";
-								response += "Content-Length: 0\r\n";
-								response += "Connection: close\r\n";
-								response += "\r\n"; // End of headers
-
-								std::cout << "Response: OTHER \n" << std::endl;
-								send(it->fd, response.c_str(), response.size(), 0);
-							}
-						}
-						memset(buffer, 0, 1024);
-					}
-				}
-			}
-			else if (it->revents & POLLERR) {
-				 if (it->fd == _listen_sock)
-                {
-                    perror("listen socket error");
-                    _exit(1);
-                }
-                else
-                {
-					perror("client socket error");
-					close(it->fd);
-					_poll_fds.erase(it);
-                }
-			}
-		}
+	std::vector<const Location*>::const_iterator it;
+	std::vector<const Location*>::const_iterator end = _locations.end();
+	for (it = _locations.begin(); it != end; it++) {
+		delete *it;
 	}
-}*/
+}
+
+void Server::defaultServer(int servNum) {
+	if(_port.empty())
+		_port.insert(8080);
+	if(_serverName.empty())
+		_serverName = "nuevo_" + std::to_string(servNum);
+	if(_errorPages.empty())
+		_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
+	if(_maxSize == 0)
+		_maxSize = 1024 * 10;
+}
+
+bool conf_isComment(const std::string &line) {
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		if (!std::isspace(line[i]))
+			return line[i] == '#';
+	}
+	return true;
+}
+
+void Server::parseServer(const std::string &serverConfig, int servNum) {
+	std::istringstream stream(serverConfig);
+	std::string line;
+	std::string key;
+	std::string value;
+
+	std::getline(stream, line);
+	while (std::getline(stream, line))
+	{
+		if (conf_isComment(line))
+			continue;
+		std::istringstream lineStream(line);
+		lineStream >> key;
+		if (key == "server_name")
+		{
+			lineStream >> value;
+			_serverName = value;
+		}
+		else if (key == "listen")
+		{
+			while (lineStream >> value)
+			{
+				int intVal = strtol(value.c_str(), NULL, 10);
+				std::set<int>::iterator it = _port.find(intVal);
+				if(it == _port.end())
+					_port.insert(intVal);
+			}
+		}
+		else if (key == "client_max_body_size")
+		{
+			lineStream >> value;
+			_maxSize = strtol(value.c_str(), NULL, 10);
+			if(value.find("M") != std::string::npos)
+				_maxSize *= 1024 * 1024;
+			else if(value.find("K") != std::string::npos)
+				_maxSize *= 1024;
+		}
+		else if (key == "error_page")
+		{
+			int code;
+			lineStream >> code;
+			lineStream >> value;
+			_errorPages.insert(std::make_pair(code, value));
+		}
+		else if (key == "location")
+		{
+			std::string locatConfig;
+			locatConfig += line;
+			locatConfig += "\n";
+			while(std::getline(stream, line) && line.find("}") == std::string::npos)
+			{
+				locatConfig += line;
+				locatConfig += "\n";
+			}
+			const Location *newLocation = new Location(locatConfig);
+			_locations.push_back(newLocation);
+		}
+		else if(key == "}")
+			break;
+		else
+			std::cerr << "Error: Unknown key: " << key << std::endl;
+	}
+	defaultServer(servNum);
+}
+
+void Server::printData() {
+	std::cout << "Server name:  " << _serverName << std::endl;
+	std::cout << "Ports:  ";
+
+	std::set<int>::iterator it_set;
+	for(it_set = _port.begin(); it_set != _port.end(); it_set++)
+		std::cout << *it_set << "  ";
+
+	std::cout << std::endl;
+	std::cout << "Error pages:  ";
+
+	std::map<int, std::string>::iterator it_map;
+	for(it_map = _errorPages.begin(); it_map != _errorPages.end(); it_map++)
+		std::cout << it_map->first << "  ";
+
+	std::cout << std::endl;
+	std::cout << "Max Size:  " << _maxSize << std::endl;
+
+	std::vector<const Location*>::const_iterator it_vector;
+	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++)
+		(*it_vector)->printData(); // Corrected the parenthesis placement
+}
+
+void Server::setLocation(const Location *location) {
+	_locations.push_back(location);
+}
+
+std::set<int> Server::getPort() const {
+	return _port;
+}
+
+std::string Server::getServerName() const {
+	return _serverName;
+}
+
+std::string Server::getErrorPage(const int &errorCode) const {
+	std::map<int, std::string>::const_iterator it;
+	it = _errorPages.find(errorCode);
+	if (it != _errorPages.end())
+		return it->second;
+	return "";
+}
+
+int Server::getMaxSize() const {
+	return _maxSize;
+}
+
+const Location& Server::getLocation(const std::string &location) const {
+	std::vector<const Location*>::const_iterator it_vector;
+	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++) {
+		if((*it_vector)->getLocation() == location)
+			return **it_vector;
+	}
+	static const Location invalidLocation("null");
+    return invalidLocation;
+}
 

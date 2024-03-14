@@ -147,7 +147,7 @@ void WebServer::parseConfigFile(const std::string &file) {
 			const Server *servAux = new Server(buffer, servNum++);
 			_servers.push_back(servAux);
 
-			std::set<int>ports = servAux->getConfig().getPort();
+			std::set<int>ports = servAux->getPort();
 			std::set<int>::iterator it;
 			for (it = ports.begin(); it != ports.end(); it++) {
 				_portsMap[*it].push_back(servAux);
@@ -260,7 +260,7 @@ void WebServer::initService() {
 				}
 			}
 			else if (it->revents & POLLOUT) {
-				std::cout << "Response: PAGE \n" << std::endl;
+				std::cout << "Response: \n" << std::endl;
 				send(it->fd, response.c_str(), response.size(), 0);
 				std::cout << "Client disconnected: " << it->fd << std::endl;
 				std::cout << "Closing socket: " << it->fd << std::endl;
