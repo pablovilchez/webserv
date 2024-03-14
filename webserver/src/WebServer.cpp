@@ -88,6 +88,25 @@ void initListeners(std::map<int, std::vector<const Server*> >& _portsMap, std::v
 	}
 }
 
+std::string extractServerName(char *buffer) {
+	std::istringstream bufferStream(buffer);
+	std::string line;
+	std::string srv;
+	while (std::getline(bufferStream, line)) {
+		if (line.find("Host:") != std::string::npos) {
+			std::istringstream iss(line);
+			std::string host;
+			iss >> host >> srv;
+			size_t pos = srv.find(".");
+			if (pos != std::string::npos) {
+				srv = srv.substr(0, pos);
+				return srv;
+			}
+		}
+	}
+	return "";
+}
+
 /*______________________________UTILS-FUNCTIONS-END______________________________*/
 
 
@@ -196,6 +215,9 @@ void WebServer::initService() {
 						std::istringstream request(buffer);
 						std::string request_line;
 						getline(request, request_line);
+
+						std::string srv = extractServerName(buffer);
+						std::cout << "   ++++          Server: " << srv << std::endl;
 
 						std::istringstream iss(request_line);
 						std::string method;
