@@ -10,10 +10,13 @@ Response::~Response() { }
 
 void Response::printData() const
 {
+void Response::printData() const
+{
 	std::cout << "Response header:  " << _header << std::endl;
 	std::cout << "Response type:    " << _type << std::endl;
 	std::cout << "Response content: " << _content << std::endl;
 	std::cout << std::endl;
+}
 }
 
 std::string Response::getHeader() const

@@ -6,12 +6,12 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/13 16:49:31 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/14 16:02:27 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.hpp"
-#include <sys/types.h>
+
 Request::Request(const std::string &raw, int clientSocket) : _raw(raw) {
 	_method = "";
 	_path = "";
@@ -28,6 +28,8 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw) {
 	_done = false;
 	_redirectionLocation = "";
 	fileToOpen = "";
+	char	buf[1024];
+	_servDrive = getcwd(buf, sizeof(buf));
 	handleRequest(clientSocket);
 }
 
@@ -53,7 +55,7 @@ void	Request::captureFileName(std::string receivedData) {
 	}
 }
 
-bool Request::fileExtension(const std::string& contentType) {
+bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
 	std::cout << "in filext: FILE'S type: " << contentType << std::endl;
 	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpg"));
@@ -61,7 +63,7 @@ bool Request::fileExtension(const std::string& contentType) {
 	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
 	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
 	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
-	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
+	contentTypeExtensions.insert(std::make_pair("html", ".html"));
 	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
 	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
 	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
@@ -77,39 +79,16 @@ bool Request::fileExtension(const std::string& contentType) {
 	}
 }
 
-/* bool Request::fileExtension() {
-	// an image
-	if (_contentType.find("image/jpeg") != std::string::npos ||
-		_contentType.find("image/png") != std::string::npos ||
-		_contentType.find("image/gif") != std::string::npos) {
-		return true;
-	}
-	// text file
-	else if (_contentType.find("text/plain") != std::string::npos ||
-				_contentType.find("text/html") != std::string::npos ||
-				_contentType.find("application/json") != std::string::npos) {
-		return true;
-	}
-	// document file
-	else if (_contentType.find("application/pdf") != std::string::npos ||
-				_contentType.find("application/msword") != std::string::npos ||
-				_contentType.find("application/vnd.openxmlformats-officedocument.wordprocessingml.document") != std::string::npos) {
-		return true;
-	}
-	std::cerr << "Unsupported content type." << std::endl;
-	return false;
-} */
-
 void	Request::parseBody(const char *buf, int bytesReceived) {
 	static int	i = 0;
 	std::string boundary = "\r\n\r\n";
 	std::string receivedData(buf, bytesReceived);
 	size_t boundaryPos = receivedData.find(boundary);
 
-/* 	if (_contentLength == 0) {
+	if (_contentLength == 0) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
-	} */
+	}
 	if (_body.empty())
 		_body.reserve(_contentLength);
 	if (i == 0 && boundaryPos != std::string::npos) {
@@ -119,21 +98,20 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	} else
 		_body.insert(_body.end(), buf, buf + bytesReceived);
 
-	// Save the file with the appropriate extension
 	if (receivedData.find(_boundary + "--") != std::string::npos) {
-		//std::cout << "\n\nBOUNDRY" << _boundary << std::endl;
 		if (fileExtension(_contentType) == true) {
-			std::ofstream outputFile(_fileName, std::ios::binary);
+			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
+			std::ofstream outputFile(saveFileIn, std::ios::binary);
 			if (outputFile.is_open()) {
 				outputFile.write(_body.data(), _body.size());
 				outputFile.close();
-				std::cout << "\n\nfile created: \n\n\n" << _contentType << std::endl; 
+				setStatus("200 OK");
 			} else
 				std::cerr << "Error opening file for writing." << std::endl;
 		}
 		//_body.clear();
 		//_done = true;
-		build
+		buildResponse();
 	}
 }
 
@@ -155,15 +133,13 @@ void Request::parseHeader(int clientSocket)
 		}
 		pos = end + 2;
 	}
-	if ((_method != "GET" && _method != "POST" && _method != "DELETE") || _version != "HTTP/1.1")
+	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1")
 			return (setStatus("400 Bad Request"));
 	fileToOpen = extractPathFromUrl(_path);
-	if (access(fileToOpen.c_str(), F_OK) == -1) {
-		std::cout << "\n\nvalue: " << fileToOpen << std::endl; 
+	std::cout << "fileToOpen: " << fileToOpen << std::endl;
+	if (access(fileToOpen.c_str(), F_OK) == -1)
 		return (setStatus("404 Not Found"));
-	}
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
-		std::cout << "\n\nvalue: " << _version << std::endl; 
 		std::string	line = _raw.substr(pos, end - pos);
 		size_t	colPos = line.find(':');
 		if (colPos != std::string::npos) {
@@ -214,16 +190,24 @@ void	Request::buildHeader() {
 	_responseHeader += "\r\n"; 
 }
 
-void	Request::buildResponse(std::string &fileToOpen) {
-	std::fstream	fileStream(fileToOpen.c_str());
-	if (fileStream) {
-		_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
-		fileStream.close();
-		buildHeader();
+void	Request::buildResponse() {
+	if (fileToOpen != "") {
+		std::fstream	fileStream(fileToOpen.c_str());
+		if (fileStream) {
+			_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
+			fileStream.close();
+	}
+	else if (_method == "POST") {
+		_responseBody = "Request served";
+	}
+	buildHeader();
 	} else {
 		setStatus("500 Internal Server Error"); // Failed to open the file
 	}
 	_done = true;
+	std::cout << "Response header:  " << _responseHeader << std::endl;
+	std::cout << "Response content: " << _responseBody << std::endl;
+	std::cout << std::endl;
 }
 
 bool	Request::validateRequest(const std::string& method) {
@@ -270,41 +254,64 @@ void	Request::generateAutoIndex(std::string &uri) {
 	_responseBody += "</html>\n";
 	closedir(dir);
 	buildHeader();
-
 }
 
-std::string	Request::extractDirectory(const std::string& path) {
+/* std::string	Request::extractDirectory(const std::string& path) {
 	size_t lastSlashPos = path.find_last_of('/');
 	size_t secondLastSlashPos = path.find_last_of('/', lastSlashPos - 1);
 
 	if (lastSlashPos != std::string::npos && secondLastSlashPos != std::string::npos)
 		return path.substr(secondLastSlashPos + 1, lastSlashPos - secondLastSlashPos - 1);
-	return "";
+	std::string	dirPath;
+	if (path.back() != '/')
+		dirPath = path + '/';
+	return dirPath;
+}
+ */
+
+bool isDirectory(const std::string& path) {
+	struct stat info;
+	if (stat(path.c_str(), &info) != 0) {
+		// Error occurred while trying to get file status
+		return false;
+	}
+	return S_ISDIR(info.st_mode);
+}
+
+bool fileOrDirectory(const std::string& path) {
+
+	if (isDirectory(path)) {
+		std::cout << path << " is a directory." << std::endl;
+		return true;
+	} else {
+		std::cout << path << " is a file." << std::endl;
+		return false;
+	}
 }
 
 void	Request::handleGetMethod(std::string &fileToOpen){
 	
-	if (!validateRequest("GET") || access(fileToOpen.c_str(), R_OK) == -1)
+	std::cout << "path:    " << _path << "  file to open:  " << fileToOpen << std::endl;
+	if (!validateRequest("GET") /* || access(fileToOpen.c_str(), R_OK) == -1 */)
 		return;
-	if (_path.back() == '/') { // path is a directory
-		const std::string&	dir = extractDirectory(_path);
+	//const std::string&	dir = extractDirectory(_path);
+	if (fileOrDirectory(_path)) { // path is a directory
 		if (!_location.getReturn().empty()) {
 			std::map<int, std::string>	redirections = _location.getReturn();
 			if (redirections.find(301) != redirections.end()) {
 				std::string	redirectionLocation = redirections[301];
 				setStatus("301 Moved Permanently");
 				_contentType = "text/html";
-				buildHeader();
 			}
+			buildResponse();
 		}
-		else if (!_location.getIndex().empty() && _location.isIndexFile(dir)) {
+		else if (!_location.getIndex().empty()) {
 			const std::set<std::string>&	indexFiles = _location.getIndex();
-			
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
-				std::string	filePath = fileToOpen + currIndexFile;
-				if (access(filePath.c_str(), F_OK) == 0) {
-					buildResponse(filePath);
+				fileToOpen += currIndexFile;
+				if (access(fileToOpen.c_str(), F_OK) == 0) {
+					buildResponse();
 					break ;
 				}
 			}
@@ -315,10 +322,16 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			setStatus("404 Not Found");
 	}
 	else { // path is a file
-		if (fileExtension(_contentType)) {
+		size_t dotPos = _path.find_last_of('.');
+		std::string ext;
+		if (dotPos != std::string::npos)
+			ext = _path.substr(dotPos + 1);
+		else
+			ext = _path;
+		if (fileExtension(ext)) {
 			// if (!_location.getCgiExtension().empty())
 				// Handle CGI processing
-			buildResponse(fileToOpen);
+			buildResponse();
 /* 			else
 				setStatus("500 Internal Server Error"); // Unable to open file */
 		}
@@ -352,9 +365,9 @@ std::string	Request::extractPathFromUrl(std::string& url) {
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
-			return (_location.getRoot() + path);
+			return (_servDrive + _location.getRoot() + path);
 	}
-	return (_location.getRoot());
+	return (_servDrive + _location.getRoot());
 }
 
 void	Request::handleRequest(int clientSocket) {
@@ -374,7 +387,8 @@ void	Request::handleRequest(int clientSocket) {
 		else
 			setStatus("405 Method Not Allowed");
 	}
-	buildResponse(fileToOpen);
+	if (!_done)
+		buildResponse();
 }
 
 void Request::printData()
@@ -385,8 +399,6 @@ void Request::printData()
 	std::cout << "Request _host:    " << _host << std::endl;
 	std::cout << "Request _contentType:    " << _contentType << std::endl;
 	std::cout << "Request _contentLength:    " << _contentLength << std::endl;
-	//std::cout << "Request _body:    " << _body << std::endl;
-
 }
 
 std::string Request::getPath() const
@@ -416,8 +428,3 @@ std::string Request::getExtension() const
 {
 	return _extension;
 }
-
-/* std::string Request::getHeader() const
-{
-	return _header;
-} */

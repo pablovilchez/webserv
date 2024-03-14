@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:12:49 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/13 15:22:30 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/14 14:21:32 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,12 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <map>
 #include <unistd.h>
 #include <dirent.h>
 #include <cstdio>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "header.hpp"
 #include "Location.hpp"
@@ -50,11 +53,10 @@ class Request
 		std::string getResponseBody() const;
 		void	generateAutoIndex(std::string &uri);
 		void	buildHeader();
-		void	buildResponse(std::string &fileToOpen);
+		void	buildResponse();
 		std::string	extractDirectory(const std::string& path);
 		std::string getMethod() const;
 		std::string getExtension() const;
-		//std::string getHeader() const;
 
 	private:
 		std::string	_raw;
@@ -68,9 +70,7 @@ class Request
 		int		_contentLength;
 		std::vector<char>	_body;
 		std::string	_boundary;
-		//size_t	_bodySize;
 		std::string	_status;
-		//Server	_server;
 		Location	_location;
 		Config		_config;
 		std::string	_responseHeader;
@@ -78,6 +78,7 @@ class Request
 		std::string	_redirectionLocation;
 		bool		_done;
 		std::string	fileToOpen;
+		std::string	_servDrive;
 		std::map<std::string, std::string> contentTypeExtensions;
 };
 
