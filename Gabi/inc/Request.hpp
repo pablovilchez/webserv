@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:12:49 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/14 14:21:32 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/15 15:38:15 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,7 @@ class Request
 		void	printData();
 		void	captureFileName(std::string receivedData);
 		bool	fileExtension(const std::string& contentType);
+		bool	fileType(const std::string& extension);
 		void	setStatus(const std::string &status);
 		std::string getPath() const;
 		std::string getRaw() const;
@@ -57,6 +58,9 @@ class Request
 		std::string	extractDirectory(const std::string& path);
 		std::string getMethod() const;
 		std::string getExtension() const;
+		bool isDirectory(const std::string& path);
+		bool fileOrDirectory(const std::string& path);
+
 
 	private:
 		std::string	_raw;

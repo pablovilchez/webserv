@@ -6,7 +6,7 @@
 /*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/14 16:02:27 by gkrusta          ###   ########.fr       */
+/*   Updated: 2024/03/15 15:45:07 by gkrusta          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,12 +58,12 @@ void	Request::captureFileName(std::string receivedData) {
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
 	std::cout << "in filext: FILE'S type: " << contentType << std::endl;
-	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpg"));
+	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
 	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
 	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
 	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
 	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
-	contentTypeExtensions.insert(std::make_pair("html", ".html"));
+	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
 	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
 	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
 	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
@@ -72,6 +72,31 @@ bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
 	if (it != contentTypeExtensions.end()) {
 		_extension = it->second;
+		return true;
+	} else {
+		_contentType = "Unsupported content type";
+		return false;
+	}
+}
+
+bool Request::fileType(const std::string& extension) {
+	std::map<std::string, std::string> extensionToContentType;
+	extensionToContentType.insert(std::make_pair(".jpeg", "image/jpeg"));
+	extensionToContentType.insert(std::make_pair(".jpg", "image/jpeg"));
+	extensionToContentType.insert(std::make_pair(".png", "image/png"));
+	extensionToContentType.insert(std::make_pair(".gif", "image/gif"));
+	extensionToContentType.insert(std::make_pair(".txt", "text/plain"));
+	extensionToContentType.insert(std::make_pair(".html", "text/html"));
+	extensionToContentType.insert(std::make_pair(".htm", "text/html"));
+	extensionToContentType.insert(std::make_pair(".json", "application/json"));
+	extensionToContentType.insert(std::make_pair(".pdf", "application/pdf"));
+	extensionToContentType.insert(std::make_pair(".doc", "application/msword"));
+	extensionToContentType.insert(std::make_pair(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+
+	// Find the content type corresponding to the extension
+	std::map<std::string, std::string>::iterator it = extensionToContentType.find(extension);
+	if (it != extensionToContentType.end()) {
+		_contentType = it->second;
 		return true;
 	} else {
 		_contentType = "Unsupported content type";
@@ -265,26 +290,27 @@ void	Request::generateAutoIndex(std::string &uri) {
 	std::string	dirPath;
 	if (path.back() != '/')
 		dirPath = path + '/';
-	return dirPath;
+	return dirPath;r
 }
  */
 
-bool isDirectory(const std::string& path) {
+bool Request::isDirectory(const std::string& path) {
 	struct stat info;
-	if (stat(path.c_str(), &info) != 0) {
-		// Error occurred while trying to get file status
+	if (stat(path.c_str(), &info) != 0)
 		return false;
-	}
 	return S_ISDIR(info.st_mode);
 }
 
-bool fileOrDirectory(const std::string& path) {
+bool Request::fileOrDirectory(const std::string& path) {
 
 	if (isDirectory(path)) {
 		std::cout << path << " is a directory." << std::endl;
 		return true;
 	} else {
 		std::cout << path << " is a file." << std::endl;
+		size_t	ext = path.find_last_of('.');
+		_extension = path.substr(ext);
+		fileType(_extension);
 		return false;
 	}
 }
@@ -322,13 +348,8 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			setStatus("404 Not Found");
 	}
 	else { // path is a file
-		size_t dotPos = _path.find_last_of('.');
-		std::string ext;
-		if (dotPos != std::string::npos)
-			ext = _path.substr(dotPos + 1);
-		else
-			ext = _path;
-		if (fileExtension(ext)) {
+
+		if (fileType(_extension)) {
 			// if (!_location.getCgiExtension().empty())
 				// Handle CGI processing
 			buildResponse();
