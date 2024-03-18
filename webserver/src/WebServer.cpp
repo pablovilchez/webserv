@@ -74,9 +74,9 @@ int createNewListener(int port) {
 	return listening;
 }
 
-void initListeners(std::map<int, std::vector<const Server*> >& _portsMap, std::vector<pollfd>& _poll_fds, std::vector<int>& _listeners) {
-	std::map<int, std::vector<const Server*> >::const_iterator it;
-	std::map<int, std::vector<const Server*> >::const_iterator end = _portsMap.end();
+void initListeners(std::map<int, std::vector<Server> >& _portsMap, std::vector<pollfd>& _poll_fds, std::vector<int>& _listeners) {
+	std::map<int, std::vector<Server> >::const_iterator it;
+	std::map<int, std::vector<Server> >::const_iterator end = _portsMap.end();
 	for (it = _portsMap.begin(); it != end; it++) {
 		int listening = createNewListener(it->first);
 
@@ -105,6 +105,43 @@ std::string extractServerName(char *buffer) {
 		}
 	}
 	return "";
+}
+
+std::string extractServerPort(char *buffer) {
+	std::istringstream bufferStream(buffer);
+	std::string line;
+	std::string srv;
+	while (std::getline(bufferStream, line)) {
+		if (line.find("Host:") != std::string::npos) {
+			std::istringstream iss(line);
+			std::string host;
+			iss >> host >> srv;
+			size_t pos = srv.find(":");
+			if (pos != std::string::npos) {
+				srv = srv.substr(pos+1);
+				return srv;
+			}
+		}
+	}
+	return "";
+}
+
+const Server &WebServer::getServerConfig(const std::string &srv, const std::string &port) {
+	std::map<int, std::vector<Server> >::const_iterator itMap;
+	std::map<int, std::vector<Server> >::const_iterator endMap = _portsMap.end();
+	for (itMap = _portsMap.begin(); itMap != endMap; itMap++) {
+		if (itMap->first == std::stoi(port)) {
+			std::vector<Server>::const_iterator itServ;
+			std::vector<Server>::const_iterator end = itMap->second.end();
+			for (itServ = itMap->second.begin(); itServ != end; itServ++) {
+				if (itServ->getServerName() == srv) {
+					return *itServ;
+				}
+			}
+			return *itMap->second.begin();
+		}
+	}
+	return *(_portsMap.begin()->second.begin());
 }
 
 /*______________________________UTILS-FUNCTIONS-END______________________________*/
@@ -144,10 +181,10 @@ void WebServer::parseConfigFile(const std::string &file) {
 				if (line.find("}") != std::string::npos)
 					checkEnd--;
 			}
-			const Server *servAux = new Server(buffer, servNum++);
+			Server servAux(buffer, servNum++);
 			_servers.push_back(servAux);
 
-			std::set<int>ports = servAux->getPort();
+			std::set<int>ports = servAux.getPort();
 			std::set<int>::iterator it;
 			for (it = ports.begin(); it != ports.end(); it++) {
 				_portsMap[*it].push_back(servAux);
@@ -216,15 +253,21 @@ void WebServer::initService() {
 						std::string request_line;
 						getline(request, request_line);
 
+						// Get server name and return server info
 						std::string srv = extractServerName(buffer);
-						std::cout << "   ++++          Server: " << srv << std::endl;
-
+						std::string port = extractServerPort(buffer);
+						Server server = getServerConfig(srv, port);
+						if (server.getServerName() == "null") {
+							std::cout << "Server not found" << std::endl;
+							it->events = POLLERR;
+						}
+						
 						std::istringstream iss(request_line);
 						std::string method;
 						std::string page;
 						iss >> method >> page;
 
-						std::cout << "Received:___________\n " << request_line << std::endl;
+						//std::cout << "Received:___________\n " << request_line << std::endl;
 						if (method == "GET") {
 							if (page == "/") {
 								std::string page_html = "<!DOCTYPE html>"
@@ -260,13 +303,13 @@ void WebServer::initService() {
 				}
 			}
 			else if (it->revents & POLLOUT) {
-				std::cout << "Response: \n" << std::endl;
+				//std::cout << "Response: \n" << std::endl;
 				send(it->fd, response.c_str(), response.size(), 0);
-				std::cout << "Client disconnected: " << it->fd << std::endl;
-				std::cout << "Closing socket: " << it->fd << std::endl;
+				//std::cout << "Client disconnected: " << it->fd << std::endl;
+				//std::cout << "Closing socket: " << it->fd << std::endl;
 				close(it->fd);
 				_poll_fds.erase(it);
-				std::cout << "Fds array size: " << _poll_fds.size() << std::endl;
+				//std::cout << "Fds array size: " << _poll_fds.size() << std::endl;
 				memset(buffer, 0, 1024);
 				response.clear();
 			}

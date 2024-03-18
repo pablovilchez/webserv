@@ -9,7 +9,7 @@ WebServer::WebServer(const std::string &file) {
 }
 
 WebServer::WebServer(const WebServer &other) {
-	std::vector<const Server*>::const_iterator vector_it;
+	std::vector<Server>::const_iterator vector_it;
 	for (vector_it = other._servers.begin(); vector_it != other._servers.end(); vector_it++) {
 		_servers.push_back(*vector_it);
 	}
@@ -19,8 +19,8 @@ WebServer::WebServer(const WebServer &other) {
 		_poll_fds.push_back(*it);
 	}
 
-	std::map<int, std::vector<const Server*> >::const_iterator map_it;
-	std::map<int, std::vector<const Server*> >::const_iterator end = other._portsMap.end();
+	std::map<int, std::vector<Server> >::const_iterator map_it;
+	std::map<int, std::vector<Server> >::const_iterator end = other._portsMap.end();
 	for (map_it = other._portsMap.begin(); map_it != end; map_it++) {
 		_portsMap[map_it->first] = map_it->second;
 	}
@@ -29,7 +29,7 @@ WebServer::WebServer(const WebServer &other) {
 WebServer &WebServer::operator=(const WebServer &other) {
 	if (this != &other) {
 		_servers.clear();
-		std::vector<const Server*>::const_iterator vector_it;
+		std::vector<Server>::const_iterator vector_it;
 		for (vector_it = other._servers.begin(); vector_it != other._servers.end(); vector_it++) {
 			_servers.push_back(*vector_it);
 		}
@@ -41,8 +41,8 @@ WebServer &WebServer::operator=(const WebServer &other) {
 		}
 
 		_portsMap.clear();
-		std::map<int, std::vector<const Server*> >::const_iterator map_it;
-		std::map<int, std::vector<const Server*> >::const_iterator end = other._portsMap.end();
+		std::map<int, std::vector<Server> >::const_iterator map_it;
+		std::map<int, std::vector<Server> >::const_iterator end = other._portsMap.end();
 		for (map_it = other._portsMap.begin(); map_it != end; map_it++) {
 			_portsMap[map_it->first] = map_it->second;
 		}
@@ -51,9 +51,9 @@ WebServer &WebServer::operator=(const WebServer &other) {
 }
 
 WebServer::~WebServer() {
-	std::vector<const Server*>::const_iterator it;
+/* 	std::vector<Server>::const_iterator it;
 	for (it = _servers.begin(); it != _servers.end(); it++) {
 		delete *it;
-	}
+	} */
 }
 

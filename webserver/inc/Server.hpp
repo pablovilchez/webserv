@@ -17,7 +17,7 @@ class Server
 		void parseServer(const std::string &serverConfig, int servNum);
 		void printData();
 
-		void setLocation(const Location *location);
+		void setLocation(Location location);
 
 		std::set<int> getPort() const;
 		std::string getServerName() const;
@@ -30,7 +30,7 @@ class Server
 		std::string						_serverName;
 		std::map<int, std::string>		_errorPages;
 		int								_maxSize;
-		std::vector<const Location*>	_locations;
+		std::vector<Location>			_locations;
 };
 
 #endif

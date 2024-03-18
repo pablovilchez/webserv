@@ -1,8 +1,13 @@
 #include "Server.hpp"
 
+class Location;
+
 Server::Server() : _maxSize(0) {
-	defaultServer(0);
-	const Location *newLocation = new Location();
+	_port.insert(8080);
+	_serverName = "nuevo_" + std::to_string(0);
+	_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
+	_maxSize = 1024 * 10;
+	Location newLocation;
 	_locations.push_back(newLocation);
 }
 
@@ -26,9 +31,9 @@ Server::Server(const Server &other) {
 
 	_maxSize = other._maxSize;
 
-	std::vector<const Location*>::const_iterator it_vec;
+	std::vector<Location>::const_iterator it_vec;
 	for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
-		_locations.push_back(*it_vec);
+		_locations.push_back(Location(*it_vec));
 	}
 }
 
@@ -51,7 +56,7 @@ Server& Server::operator=(const Server &other) {
 		_maxSize = other._maxSize;
 
 		_locations.clear();
-		std::vector<const Location*>::const_iterator it_vec;
+		std::vector<Location>::const_iterator it_vec;
 		for (it_vec = other._locations.begin(); it_vec != other._locations.end(); it_vec++) {
 			_locations.push_back(*it_vec);
 		}
@@ -60,11 +65,11 @@ Server& Server::operator=(const Server &other) {
 }
 
 Server::~Server() {
-	std::vector<const Location*>::const_iterator it;
+	/* std::vector<const Location*>::const_iterator it;
 	std::vector<const Location*>::const_iterator end = _locations.end();
 	for (it = _locations.begin(); it != end; it++) {
 		delete *it;
-	}
+	} */
 }
 
 void Server::defaultServer(int servNum) {
@@ -141,7 +146,7 @@ void Server::parseServer(const std::string &serverConfig, int servNum) {
 				locatConfig += line;
 				locatConfig += "\n";
 			}
-			const Location *newLocation = new Location(locatConfig);
+			Location newLocation(locatConfig);
 			_locations.push_back(newLocation);
 		}
 		else if(key == "}")
@@ -170,12 +175,12 @@ void Server::printData() {
 	std::cout << std::endl;
 	std::cout << "Max Size:  " << _maxSize << std::endl;
 
-	std::vector<const Location*>::const_iterator it_vector;
+	std::vector<Location>::const_iterator it_vector;
 	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++)
-		(*it_vector)->printData(); // Corrected the parenthesis placement
+		it_vector->printData(); // Corrected the parenthesis placement
 }
 
-void Server::setLocation(const Location *location) {
+void Server::setLocation(Location location) {
 	_locations.push_back(location);
 }
 
@@ -200,10 +205,10 @@ int Server::getMaxSize() const {
 }
 
 const Location& Server::getLocation(const std::string &location) const {
-	std::vector<const Location*>::const_iterator it_vector;
+	std::vector<Location>::const_iterator it_vector;
 	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++) {
-		if((*it_vector)->getLocation() == location)
-			return **it_vector;
+		if((*it_vector).getLocation() == location)
+			return *it_vector;
 	}
 	static const Location invalidLocation("null");
     return invalidLocation;

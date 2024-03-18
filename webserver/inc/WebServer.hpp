@@ -19,12 +19,13 @@ class WebServer {
 
 		void parseConfigFile(const std::string &file);
 		void initService();
+		const Server &getServerConfig(const std::string &srv, const std::string &port);
 
 	private:
-		std::vector<const Server*>	_servers;
+		std::vector<Server>	_servers;
 		std::vector<pollfd>			_poll_fds;
 		std::vector<int>			_listeners;
-		std::map<int, std::vector<const Server*> > _portsMap;
+		std::map<int, std::vector<Server> > _portsMap;
 };
 
 #endif
