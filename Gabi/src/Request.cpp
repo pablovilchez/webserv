@@ -49,10 +49,10 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	std::string receivedData(buf, bytesReceived);
 	size_t boundaryPos = receivedData.find(boundary);
 
-	if (_contentLength == 0) {
+/* 	if (_contentLength == 0) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
-	}
+	} */
 	if (_body.empty())
 		_body.reserve(_contentLength);
 	if (i == 0 && boundaryPos != std::string::npos) {
@@ -141,12 +141,11 @@ void Request::parseHeader()
 void	Request::buildHeader() {
 	std::stringstream	contLenStr;
 	contLenStr << _contentLength;
-	_responseHeader = "HTTP/1.1 " + _status + "\r\n";
+	_responseHeader = "HTTP/1.1 " + _status + "\n";
 	if (_redirectionLocation != "")
-		_responseHeader += "Location: " + _redirectionLocation + "\r\n";
-	_responseHeader += "Content-Type: " + _contentType + "\r\n";
-	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
-	_responseHeader += "\r\n"; 
+		_responseHeader += "Location: " + _redirectionLocation + "\n";
+	_responseHeader += "Content-Type: " + _contentType + "\n";
+	_responseHeader += "Content-Length: " + contLenStr.str() + "\n\n";
 }
 
 void	Request::buildResponse() {
@@ -157,7 +156,7 @@ void	Request::buildResponse() {
 			fileStream.close();
 		}
 		else
-		setStatus("500 Internal Server Error"); // Failed to open the file
+			setStatus("500 Internal Server Error"); // Failed to open the file
 	}
 	else if (_method == "POST")
 		_responseBody = "Request served";
@@ -168,7 +167,6 @@ void	Request::buildResponse() {
 	_done = true;
 	std::cout << "Response header:  " << _responseHeader << std::endl;
 	std::cout << "Response content: " << _responseBody << std::endl;
-	std::cout << std::endl;
 }
 
 bool	Request::validateRequest(const std::string& method) {
@@ -343,7 +341,7 @@ void Request::printData()
 
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
-	//std::cout << "in filext: FILE'S type: " << contentType << std::endl;
+	contentTypeExtensions.insert(std::make_pair("image/icon", ".ico"));
 	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
 	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
 	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
@@ -367,6 +365,7 @@ bool	Request::fileExtension(const std::string& contentType) {
 
 bool	Request::fileType(const std::string& extension) {
 	std::map<std::string, std::string> extensionToContentType;
+	extensionToContentType.insert(std::make_pair(".ico", "image/icon"));
 	extensionToContentType.insert(std::make_pair(".jpeg", "image/jpeg"));
 	extensionToContentType.insert(std::make_pair(".jpg", "image/jpeg"));
 	extensionToContentType.insert(std::make_pair(".png", "image/png"));

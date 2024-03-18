@@ -71,7 +71,7 @@ while (runningFlag) {
 			} else { // Existing client activity
 				char buf[4096];
 				memset(buf, 0, 4096);
-
+				std::string response;
 				// Receive data from the client
 				int bytesRecv = recv(i, buf, sizeof(buf), 0);
 				if (bytesRecv <= 0) {
@@ -86,7 +86,7 @@ while (runningFlag) {
 
 				} else {
                     std::string receivedData(buf, bytesRecv);
-					//std::cout << "Received HTTP request for main page:\n" << receivedData << std::endl;
+					std::cout << "Received HTTP request for main page:\n" << receivedData << std::endl;
                     std::map<int, Request>::iterator it = clientRequests.find(i);
                     // Check if the client already exists in the map
                     if (it != clientRequests.end()) {
@@ -96,6 +96,7 @@ while (runningFlag) {
                         // Client doesn't exist, create a new Request instance and add to map
                         Request newRequest(buf);
                         clientRequests.insert(std::make_pair(i, newRequest));
+						response = newRequest.getResponse();
                     }
         
 					if (receivedData == "exit") {
@@ -104,15 +105,14 @@ while (runningFlag) {
 						FD_CLR(i, &master);
 					}
 					else if (receivedData.find("GET") == 0) {
-	/* 					if (receivedData.find("GET / HTTP/1.1") != std::string::npos)
+						/* if (receivedData.find("GET / HTTP/1.1") != std::string::npos)
 							std::cout << "Received HTTP request for main page:\n" << receivedData << std::endl; */
 						//std::string htmlContent = readFile("ex2.html");
-						//std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + htmlContent;
-						//send(i, response.c_str(), response.size(), 0);
-						// Close the client's socket
+						send(i, response.c_str(), response.size(), 0);
+						//Close the client's socket
 						//std::cout << "Client " << i << " served and disconnected" << std::endl;
-						//close(i);
-						//FD_CLR(i, &master);
+						close(i);
+						FD_CLR(i, &master);
 					}
 					else if (receivedData.find("POST") == 0) {
 						//receivedData2.printData();
