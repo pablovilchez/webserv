@@ -77,7 +77,7 @@ void Location::defaultConfig() {
 		_acceptedMethods.insert("DELETE");
 	}
 	if(_root.empty())
-		_root = "var/default";
+		_root = "/var/default"; // debe empezar con /
 	if(_index.empty())
 		_index.insert("index.html");
 }

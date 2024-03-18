@@ -260,45 +260,12 @@ void WebServer::initService() {
 						if (server.getServerName() == "null") {
 							std::cout << "Server not found" << std::endl;
 							it->events = POLLERR;
+							break;
 						}
 						
-						std::istringstream iss(request_line);
-						std::string method;
-						std::string page;
-						iss >> method >> page;
-
-						//std::cout << "Received:___________\n " << request_line << std::endl;
-						if (method == "GET") {
-							if (page == "/") {
-								std::string page_html = "<!DOCTYPE html>"
-												"<html lang=\"en\">"
-												"<head>"
-												"    <meta charset=\"UTF-8\">"
-												"    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-												"    <title>Error Page</title>"
-												"</head>"
-												"<body>"
-												"    <h1>Hello</h1>"
-												"    <h2>World</h2>"
-												"    <a href=\"/\">Back</a>"
-												"</body>"
-												"</html>";
-								response = "HTTP/1.1 200 OK\r\n";
-								std::stringstream ss;
-								ss << page_html.size();
-								response += "Content-Type: text/html\r\n";
-								response += "Content-Length: " + ss.str() + "\r\n";
-								response += "\r\n"; // End of headers
-								response += page_html; // Message body
-							}
-							else {
-								response = "HTTP/1.1 200 OK\r\n";
-								response += "Content-Type: text/plain\r\n";
-								response += "Content-Length: 0\r\n";
-								response += "\r\n"; // End of headers
-							}
-							it->events = POLLOUT;
-						}
+						Request newRequest(buffer);
+						response = newRequest.getResponse();
+						it->events = POLLOUT;
 					}
 				}
 			}

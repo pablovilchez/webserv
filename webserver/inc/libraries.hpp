@@ -26,5 +26,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <cstdio>
 
 #endif

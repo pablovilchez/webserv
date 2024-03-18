@@ -3,6 +3,7 @@
 
 #include "libraries.hpp"
 #include "Server.hpp"
+#include "Request.hpp"
 
 #define MAXCLIENTS 150
 
