@@ -141,12 +141,11 @@ void Request::parseHeader()
 void	Request::buildHeader() {
 	std::stringstream	contLenStr;
 	contLenStr << _contentLength;
-	_responseHeader = "HTTP/1.1 " + _status + "\r\n";
+	_responseHeader = "HTTP/1.1 " + _status + "\n";
 	if (_redirectionLocation != "")
-		_responseHeader += "Location: " + _redirectionLocation + "\r\n";
-	_responseHeader += "Content-Type: " + _contentType + "\r\n";
-	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
-	_responseHeader += "\r\n"; 
+		_responseHeader += "Location: " + _redirectionLocation + "\n";
+	_responseHeader += "Content-Type: " + _contentType + "\n\n";
+	//_responseHeader += "Content-Length: " + contLenStr.str() + "\n\n";
 }
 
 void	Request::buildResponse() {
@@ -266,6 +265,7 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 		if (fileType(_extension)) {
 			// if (!_location.getCgiExtension().empty())
 				// Handle CGI processing
+			setStatus("200 OK");
 			buildResponse();
 /* 			else
 				setStatus("500 Internal Server Error"); // Unable to open file */
