@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Request.hpp                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/02 21:12:49 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/15 15:38:15 by gkrusta          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
@@ -28,20 +16,23 @@
 #include "Location.hpp"
 #include "Config.hpp"
 
+class Location;
+class Config;
+
 class Request
 {
 	public:
-		Request(const std::string &raw, int clientSocket);
+		Request(const std::string &raw);
 		~Request();
 
-		void	handleRequest(int clientSocket);
+		void	handleRequest();
 		void	handleGetMethod(std::string &fileToOpen);
 		void	handlePostMethod();
 		void	handleDeleteMethod(std::string &fileToDelete);
 
 		std::string	extractPathFromUrl(std::string& url);
 		bool	validateRequest(const std::string& method);
-		void	parseHeader(int clientSocket);
+		void	parseHeader();
 		void	parseBody(const char *buf, int bytesReceived);
 		void	printData();
 		void	captureFileName(std::string receivedData);
@@ -52,6 +43,8 @@ class Request
 		std::string getRaw() const;
 		std::string getResponseHeader() const;
 		std::string getResponseBody() const;
+		void	setResponse();
+		std::string	getResponse() const;
 		void	generateAutoIndex(std::string &uri);
 		void	buildHeader();
 		void	buildResponse();
@@ -79,6 +72,7 @@ class Request
 		Config		_config;
 		std::string	_responseHeader;
 		std::string	_responseBody;
+		std::string	_response; // the whole response from server is saved here !!
 		std::string	_redirectionLocation;
 		bool		_done;
 		std::string	fileToOpen;

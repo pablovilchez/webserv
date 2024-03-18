@@ -1,18 +1,6 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Request.cpp                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: gkrusta <gkrusta@student.42malaga.com>     +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/02 21:18:22 by pvilchez          #+#    #+#             */
-/*   Updated: 2024/03/15 15:45:07 by gkrusta          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Request.hpp"
 
-Request::Request(const std::string &raw, int clientSocket) : _raw(raw) {
+Request::Request(const std::string &raw) : _raw(raw) {
 	_method = "";
 	_path = "";
 	_version = "";
@@ -30,7 +18,7 @@ Request::Request(const std::string &raw, int clientSocket) : _raw(raw) {
 	fileToOpen = "";
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
-	handleRequest(clientSocket);
+	handleRequest();
 }
 
 Request::~Request() { }
@@ -52,55 +40,6 @@ void	Request::captureFileName(std::string receivedData) {
 			else
 				_fileName = receivedData.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
 		}
-	}
-}
-
-bool	Request::fileExtension(const std::string& contentType) {
-	std::map<std::string, std::string> contentTypeExtensions;
-	std::cout << "in filext: FILE'S type: " << contentType << std::endl;
-	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
-	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
-	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
-	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
-	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
-	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
-	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
-	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
-	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
-	contentTypeExtensions.insert(std::make_pair("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"));
-
-	std::map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
-	if (it != contentTypeExtensions.end()) {
-		_extension = it->second;
-		return true;
-	} else {
-		_contentType = "Unsupported content type";
-		return false;
-	}
-}
-
-bool Request::fileType(const std::string& extension) {
-	std::map<std::string, std::string> extensionToContentType;
-	extensionToContentType.insert(std::make_pair(".jpeg", "image/jpeg"));
-	extensionToContentType.insert(std::make_pair(".jpg", "image/jpeg"));
-	extensionToContentType.insert(std::make_pair(".png", "image/png"));
-	extensionToContentType.insert(std::make_pair(".gif", "image/gif"));
-	extensionToContentType.insert(std::make_pair(".txt", "text/plain"));
-	extensionToContentType.insert(std::make_pair(".html", "text/html"));
-	extensionToContentType.insert(std::make_pair(".htm", "text/html"));
-	extensionToContentType.insert(std::make_pair(".json", "application/json"));
-	extensionToContentType.insert(std::make_pair(".pdf", "application/pdf"));
-	extensionToContentType.insert(std::make_pair(".doc", "application/msword"));
-	extensionToContentType.insert(std::make_pair(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
-
-	// Find the content type corresponding to the extension
-	std::map<std::string, std::string>::iterator it = extensionToContentType.find(extension);
-	if (it != extensionToContentType.end()) {
-		_contentType = it->second;
-		return true;
-	} else {
-		_contentType = "Unsupported content type";
-		return false;
 	}
 }
 
@@ -140,11 +79,10 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	}
 }
 
-void Request::parseHeader(int clientSocket)
+void Request::parseHeader()
 {
 	size_t	pos = 0;
 	size_t	end = _raw.find("\r\n");
-
 
 	if (end != std::string::npos) {
 		std::string	line = _raw.substr(pos, end - pos);
@@ -161,7 +99,6 @@ void Request::parseHeader(int clientSocket)
 	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1")
 			return (setStatus("400 Bad Request"));
 	fileToOpen = extractPathFromUrl(_path);
-	std::cout << "fileToOpen: " << fileToOpen << std::endl;
 	if (access(fileToOpen.c_str(), F_OK) == -1)
 		return (setStatus("404 Not Found"));
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
@@ -190,17 +127,14 @@ void Request::parseHeader(int clientSocket)
 	}
 	size_t expectHeaderPos = _raw.find("Expect: 100-continue");
 	if (expectHeaderPos != std::string::npos) {
+		bool	readyToAcceptPayload = false;
 
-		bool readyToAcceptPayload = true;
-
-		if (readyToAcceptPayload) {
-			std::string continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-			send(clientSocket, continueResponse.c_str(), continueResponse.size(), 0);
-		} else {
-			std::string finalResponse = "HTTP/1.1 400 Bad Request\r\n\r\n";
-			send(clientSocket, finalResponse.c_str(), finalResponse.size(), 0);
-			// Close the connection
-		}
+		if (readyToAcceptPayload)
+			_responseHeader = "HTTP/1.1 100 Continue\r\n\r\n";
+		else
+			_responseHeader = "HTTP/1.1 400 Bad Request\r\n\r\n";
+		setResponse();
+		_done = true;
 	}
 }
 
@@ -216,19 +150,21 @@ void	Request::buildHeader() {
 }
 
 void	Request::buildResponse() {
-	if (fileToOpen != "") {
+	if (fileToOpen != "" && _method == "GET") {
 		std::fstream	fileStream(fileToOpen.c_str());
 		if (fileStream) {
 			_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 			fileStream.close();
-	}
-	else if (_method == "POST") {
-		_responseBody = "Request served";
-	}
-	buildHeader();
-	} else {
+		}
+		else
 		setStatus("500 Internal Server Error"); // Failed to open the file
 	}
+	else if (_method == "POST")
+		_responseBody = "Request served";
+	else if (_method == "DELETE")
+		_contentType = "text/plain";
+	buildHeader();
+	setResponse();
 	_done = true;
 	std::cout << "Response header:  " << _responseHeader << std::endl;
 	std::cout << "Response content: " << _responseBody << std::endl;
@@ -245,6 +181,7 @@ bool	Request::validateRequest(const std::string& method) {
 		requestedLocation = _path;
 	_location = _config.getLocation(requestedLocation);
 	if (_location.getLocation() == "null") {
+		std::cout << "HERE  " << std::endl;
 		setStatus("404 Not Found");
 		return false;
 	}
@@ -294,33 +231,10 @@ void	Request::generateAutoIndex(std::string &uri) {
 }
  */
 
-bool Request::isDirectory(const std::string& path) {
-	struct stat info;
-	if (stat(path.c_str(), &info) != 0)
-		return false;
-	return S_ISDIR(info.st_mode);
-}
-
-bool Request::fileOrDirectory(const std::string& path) {
-
-	if (isDirectory(path)) {
-		std::cout << path << " is a directory." << std::endl;
-		return true;
-	} else {
-		std::cout << path << " is a file." << std::endl;
-		size_t	ext = path.find_last_of('.');
-		_extension = path.substr(ext);
-		fileType(_extension);
-		return false;
-	}
-}
-
 void	Request::handleGetMethod(std::string &fileToOpen){
 	
-	std::cout << "path:    " << _path << "  file to open:  " << fileToOpen << std::endl;
 	if (!validateRequest("GET") /* || access(fileToOpen.c_str(), R_OK) == -1 */)
 		return;
-	//const std::string&	dir = extractDirectory(_path);
 	if (fileOrDirectory(_path)) { // path is a directory
 		if (!_location.getReturn().empty()) {
 			std::map<int, std::string>	redirections = _location.getReturn();
@@ -370,35 +284,40 @@ void	Request::handlePostMethod(){
 }
 
 void	Request::handleDeleteMethod(std::string &fileToDelete){
-	if (!validateRequest("DELETE"))
+	char	resolvedPath[PATH_MAX];
+	struct stat fileInfo;
+
+	strcpy(resolvedPath, fileToDelete.c_str());
+
+	if (realpath(fileToDelete.c_str(), resolvedPath) == nullptr) {
+		setStatus("404 Not Found");
 		return;
-	else if (remove(fileToDelete.c_str()) != 0)
-		setStatus("500 Internal Server Error");
-	else
+	}
+	else if (stat(resolvedPath, &fileInfo) != 0 || !S_ISREG(fileInfo.st_mode) || access(resolvedPath, W_OK) != 0) {
+		setStatus("403 Forbidden");
+		return;
+	}
+	if (remove(resolvedPath) == 0)
 		setStatus("204 No Content");
+	else
+		setStatus("500 Internal Server Error");
 }
 
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-
 	if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
 			return (_servDrive + _location.getRoot() + path);
 	}
-	return (_servDrive + _location.getRoot());
+	return (_servDrive + _location.getRoot() + url);
 }
 
-void	Request::handleRequest(int clientSocket) {
-/* 	std::string	fileToOpen;
-
-	fileToOpen = extractPathFromUrl(_path);
-	if (access(fileToOpen.c_str(), F_OK) == -1)
-		setStatus("404 Not Found"); */
-	parseHeader(clientSocket);
-	if (_status == "") {
+void	Request::handleRequest() {
+	parseHeader();
+	if (_status == "" && !_done) {
 		if (_method == "GET")
 			handleGetMethod(fileToOpen);
 		else if (_method == "POST")
@@ -422,6 +341,74 @@ void Request::printData()
 	std::cout << "Request _contentLength:    " << _contentLength << std::endl;
 }
 
+bool	Request::fileExtension(const std::string& contentType) {
+	std::map<std::string, std::string> contentTypeExtensions;
+	//std::cout << "in filext: FILE'S type: " << contentType << std::endl;
+	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
+	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
+	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
+	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
+	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
+	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
+	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
+	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
+	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
+	contentTypeExtensions.insert(std::make_pair("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"));
+
+	std::map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
+	if (it != contentTypeExtensions.end()) {
+		_extension = it->second;
+		return true;
+	} else {
+		_contentType = "Unsupported content type";
+		return false;
+	}
+}
+
+bool	Request::fileType(const std::string& extension) {
+	std::map<std::string, std::string> extensionToContentType;
+	extensionToContentType.insert(std::make_pair(".jpeg", "image/jpeg"));
+	extensionToContentType.insert(std::make_pair(".jpg", "image/jpeg"));
+	extensionToContentType.insert(std::make_pair(".png", "image/png"));
+	extensionToContentType.insert(std::make_pair(".gif", "image/gif"));
+	extensionToContentType.insert(std::make_pair(".txt", "text/plain"));
+	extensionToContentType.insert(std::make_pair(".html", "text/html"));
+	extensionToContentType.insert(std::make_pair(".htm", "text/html"));
+	extensionToContentType.insert(std::make_pair(".json", "application/json"));
+	extensionToContentType.insert(std::make_pair(".pdf", "application/pdf"));
+	extensionToContentType.insert(std::make_pair(".doc", "application/msword"));
+	extensionToContentType.insert(std::make_pair(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+
+	// Find the content type corresponding to the extension
+	std::map<std::string, std::string>::iterator it = extensionToContentType.find(extension);
+	if (it != extensionToContentType.end()) {
+		_contentType = it->second;
+		return true;
+	} else {
+		_contentType = "application/octet-stream";
+		return false;
+	}
+}
+
+bool	Request::isDirectory(const std::string& path) {
+	struct stat info;
+	if (stat(path.c_str(), &info) != 0)
+		return false;
+	return S_ISDIR(info.st_mode);
+}
+
+bool	Request::fileOrDirectory(const std::string& path) {
+
+	if (isDirectory(path))
+		return true;
+	else {
+		size_t	ext = path.find_last_of('.');
+		_extension = path.substr(ext);
+		fileType(_extension);
+		return false;
+	}
+}
+
 std::string Request::getPath() const
 {
 	return _path;
@@ -439,7 +426,6 @@ std::string	Request::getResponseBody() const {
 	return _responseBody;
 }
 
-
 std::string Request::getMethod() const
 {
 	return _method;
@@ -448,4 +434,14 @@ std::string Request::getMethod() const
 std::string Request::getExtension() const
 {
 	return _extension;
+}
+
+void	Request::setResponse()
+{
+	_response = _responseHeader + _responseBody;
+}
+
+std::string	Request::getResponse() const
+{
+	return _response;
 }
