@@ -98,11 +98,13 @@ void Request::parseHeader()
 		pos = end + 2;
 	}
 	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1")
-			return (setStatus("400 Bad Request"));
+		return (setStatus("400 Bad Request"));
+	if (!validateRequest(_method))
+		return;
 	fileToOpen = extractPathFromUrl(_path);
-    std::cout << "file to open: " << fileToOpen << std::endl;
 	if (access(fileToOpen.c_str(), F_OK) == -1)
 		return (setStatus("404 Not Found"));
+    std::cout << "file to open: " << fileToOpen << std::endl;
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
 		std::string	line = _raw.substr(pos, end - pos);
 		size_t	colPos = line.find(':');
@@ -182,7 +184,7 @@ bool	Request::validateRequest(const std::string& method) {
 		requestedLocation = _path;
 	_location = _config.getLocation(requestedLocation);
 	if (_location.getLocation() == "null") {
-		std::cout << "HERE  " << std::endl;
+		std::cout << "HERE " << std::endl;
 		setStatus("404 Not Found");
 		return false;
 	}
@@ -234,9 +236,9 @@ void	Request::generateAutoIndex(std::string &uri) {
 
 void	Request::handleGetMethod(std::string &fileToOpen){
 	
-	if (!validateRequest("GET") /* || access(fileToOpen.c_str(), R_OK) == -1 */)
-		return;
-	if (fileOrDirectory(_path)) { // path is a directory
+/* 	if (!validateRequest("GET") || access(fileToOpen.c_str(), R_OK) == -1)
+		return; */
+	if (fileOrDirectory(fileToOpen)) { // path is a directory
 		if (!_location.getReturn().empty()) {
 			std::map<int, std::string>	redirections = _location.getReturn();
 			if (redirections.find(301) != redirections.end()) {
@@ -250,7 +252,8 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			const std::set<std::string>&	indexFiles = _location.getIndex();
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
-				fileToOpen += currIndexFile;
+				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
+				std::cout << "2 file to open: " << fileToOpen << std::endl;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
 					buildResponse();
 					break ;
@@ -305,18 +308,21 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 		setStatus("500 Internal Server Error");
 }
 
+// por ahora falta "." ".." comprobaciones
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-    std::cout << "root: " << _location.getRoot() << std::endl;
-
-    if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
+	std::cout << "root: " << _location.getRoot() << std::endl;
+	std::cout << "url: " << url << std::endl;
+	if (secondSlashPos == std::string::npos && url.find(".") == std::string::npos) // only directory
+		return (_servDrive + _location.getRoot());
+	else if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) { // directory and file
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
 			return (_servDrive + _location.getRoot() + path);
 	}
-	return (_servDrive + _location.getRoot() + url);
+	return (_servDrive + _location.getRoot());
 }
 
 void	Request::handleRequest() {
@@ -402,7 +408,6 @@ bool	Request::isDirectory(const std::string& path) {
 }
 
 bool	Request::fileOrDirectory(const std::string& path) {
-
 	if (isDirectory(path))
 		return true;
 	else {
