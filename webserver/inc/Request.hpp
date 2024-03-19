@@ -13,7 +13,7 @@ class Request
 		/* Request();
 		Request(const Request& other);
 		Request& operator=(const Request& other); */
-		Request(const std::string &raw);
+		Request(const std::string &raw, const Server &srv);
 		~Request();
 
 		void	handleRequest();

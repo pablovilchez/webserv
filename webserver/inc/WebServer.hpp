@@ -20,7 +20,7 @@ class WebServer {
 
 		void parseConfigFile(const std::string &file);
 		void initService();
-		const Server &getServerConfig(const std::string &srv, const std::string &port);
+		const Server &getServerConfig(char *buffer);
 
 	private:
 		std::vector<Server>	_servers;

@@ -77,7 +77,7 @@ void Location::defaultConfig() {
 		_acceptedMethods.insert("DELETE");
 	}
 	if(_root.empty())
-		_root = "/var/default"; // debe empezar con /
+        _root = "/var/default"; // debe empezar con /
 	if(_index.empty())
 		_index.insert("index.html");
 }
@@ -150,9 +150,7 @@ void Location::parseConfig(const std::string &config) {
 		else if(key == "}")
 			break;
 		else
-		{
 			std::cerr << "Error: Unknown key: " << key << std::endl;
-		}
 	}
 	defaultConfig();
 }

@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request(const std::string &raw) : _raw(raw) {
+Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config(srv) {
 	_method = "";
 	_path = "";
 	_version = "";
@@ -19,6 +19,7 @@ Request::Request(const std::string &raw) : _raw(raw) {
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
 	handleRequest();
+    _config.printData();
 }
 
 Request::~Request() { }
@@ -99,6 +100,7 @@ void Request::parseHeader()
 	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1")
 			return (setStatus("400 Bad Request"));
 	fileToOpen = extractPathFromUrl(_path);
+    std::cout << "file to open: " << fileToOpen << std::endl;
 	if (access(fileToOpen.c_str(), F_OK) == -1)
 		return (setStatus("404 Not Found"));
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
@@ -306,7 +308,9 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-	if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
+    std::cout << "root: " << _location.getRoot() << std::endl;
+
+    if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
@@ -409,39 +413,18 @@ bool	Request::fileOrDirectory(const std::string& path) {
 	}
 }
 
-std::string Request::getPath() const
-{
-	return _path;
-}
+std::string Request::getPath() const { return _path; }
 
-void	Request::setStatus(const std::string &status) {
-	_status = status;
-}
+void	Request::setStatus(const std::string &status) {	_status = status; }
 
-std::string	Request::getResponseHeader() const {
-	return _responseHeader;
-}
+std::string	Request::getResponseHeader() const { return _responseHeader; }
 
-std::string	Request::getResponseBody() const {
-	return _responseBody;
-}
+std::string	Request::getResponseBody() const { return _responseBody; }
 
-std::string Request::getMethod() const
-{
-	return _method;
-}
+std::string Request::getMethod() const { return _method; }
 
-std::string Request::getExtension() const
-{
-	return _extension;
-}
+std::string Request::getExtension() const {	return _extension; }
 
-void	Request::setResponse()
-{
-	_response = _responseHeader + _responseBody;
-}
+void	Request::setResponse() { _response = _responseHeader + _responseBody; }
 
-std::string	Request::getResponse() const
-{
-	return _response;
-}
+std::string	Request::getResponse() const { return _response; }

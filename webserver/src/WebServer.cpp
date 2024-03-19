@@ -110,23 +110,25 @@ std::string extractServerName(char *buffer) {
 std::string extractServerPort(char *buffer) {
 	std::istringstream bufferStream(buffer);
 	std::string line;
-	std::string srv;
+	std::string port;
 	while (std::getline(bufferStream, line)) {
 		if (line.find("Host:") != std::string::npos) {
 			std::istringstream iss(line);
 			std::string host;
-			iss >> host >> srv;
-			size_t pos = srv.find(":");
+			iss >> host >> port;
+			size_t pos = port.find(":");
 			if (pos != std::string::npos) {
-				srv = srv.substr(pos+1);
-				return srv;
+                port = port.substr(pos + 1);
+				return port;
 			}
 		}
 	}
 	return "";
 }
 
-const Server &WebServer::getServerConfig(const std::string &srv, const std::string &port) {
+const Server &WebServer::getServerConfig(char *buffer) {
+    std::string srv = ::extractServerName(buffer);
+    std::string port = ::extractServerPort(buffer);
 	std::map<int, std::vector<Server> >::const_iterator itMap;
 	std::map<int, std::vector<Server> >::const_iterator endMap = _portsMap.end();
 	for (itMap = _portsMap.begin(); itMap != endMap; itMap++) {
@@ -254,32 +256,29 @@ void WebServer::initService() {
 						getline(request, request_line);
 
 						// Get server name and return server info
-						std::string srv = extractServerName(buffer);
-						std::string port = extractServerPort(buffer);
-						Server server = getServerConfig(srv, port);
+
+						Server server = getServerConfig(buffer);
 						if (server.getServerName() == "null") {
 							std::cout << "Server not found" << std::endl;
 							it->events = POLLERR;
 							break;
 						}
 						
-						Request newRequest(buffer);
+						Request newRequest(buffer, server);
 						response = newRequest.getResponse();
 						it->events = POLLOUT;
 					}
 				}
 			}
 			else if (it->revents & POLLOUT) {
-				//std::cout << "Response: \n" << std::endl;
 				send(it->fd, response.c_str(), response.size(), 0);
-				//std::cout << "Client disconnected: " << it->fd << std::endl;
-				//std::cout << "Closing socket: " << it->fd << std::endl;
 				close(it->fd);
 				_poll_fds.erase(it);
-				//std::cout << "Fds array size: " << _poll_fds.size() << std::endl;
 				memset(buffer, 0, 1024);
 				response.clear();
 			}
+
+
 /* 			else if (it->revents & POLLERR) {
 				std::vector<int>::const_iterator it_listen;
 				for (it_listen = _listeners.begin(); it_listen != _listeners.end(); it_listen++) {
