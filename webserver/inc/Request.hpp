@@ -30,6 +30,7 @@ class Request
 		bool	fileExtension(const std::string& contentType);
 		bool	fileType(const std::string& extension);
 		void	setStatus(const std::string &status);
+		void	setExtension(const std::string &path);
 		std::string getPath() const;
 		std::string getRaw() const;
 		std::string getResponseHeader() const;

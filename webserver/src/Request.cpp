@@ -104,7 +104,6 @@ void Request::parseHeader()
 	fileToOpen = extractPathFromUrl(_path);
 	if (access(fileToOpen.c_str(), F_OK) == -1)
 		return (setStatus("404 Not Found"));
-    std::cout << "file to open: " << fileToOpen << std::endl;
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
 		std::string	line = _raw.substr(pos, end - pos);
 		size_t	colPos = line.find(':');
@@ -153,14 +152,18 @@ void	Request::buildHeader() {
 }
 
 void	Request::buildResponse() {
-	if (fileToOpen != "" && _method == "GET") {
+	if (_method == "GET") {
 		std::fstream	fileStream(fileToOpen.c_str());
 		if (fileStream) {
 			_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 			fileStream.close();
+			setStatus("200 OK");
+			setExtension(fileToOpen);
 		}
+		else if (!_responseBody.empty())
+			setStatus("200 OK");
 		else
-		setStatus("500 Internal Server Error"); // Failed to open the file
+			setStatus("500 Internal Server Error"); // Failed to open the file
 	}
 	else if (_method == "POST")
 		_responseBody = "Request served";
@@ -205,20 +208,20 @@ void	Request::generateAutoIndex(std::string &uri) {
 		std::cerr << "Error opening directory" << std::endl;
 		return;
 	}
-	_responseBody += "<html>\n <head>\n <title>Index of " + uri + "</title>\n </head>\n <body>";
-	_responseBody += "<h1>Index of " + uri + "</h1>";
+	_responseBody += "<html>\n <head>\n <title>Index of " + _location.getLocation() + "</title>\n </head>\n <body>";
+	_responseBody += "<h1>These are files inside " + _location.getLocation() + "</h1>";
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
 		if (currDir->d_type == DT_REG && std::string(currDir->d_name).find(".html") != std::string::npos) {
-			std::string	filePath = uri + std::string(currDir->d_name);
+			std::string	filePath = uri + "/" + std::string(currDir->d_name);
 			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
 		}
 	}
 	_responseBody += "</ul>\n";
 	_responseBody += "</body>\n";
 	_responseBody += "</html>\n";
+	_contentType = "text/html";
 	closedir(dir);
-	buildHeader();
 }
 
 /* std::string	Request::extractDirectory(const std::string& path) {
@@ -244,7 +247,6 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			if (redirections.find(301) != redirections.end()) {
 				std::string	redirectionLocation = redirections[301];
 				setStatus("301 Moved Permanently");
-				_contentType = "text/html";
 			}
 			buildResponse();
 		}
@@ -253,15 +255,16 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
 				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
-				std::cout << "2 file to open: " << fileToOpen << std::endl;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
 					buildResponse();
 					break ;
 				}
 			}
 		}
-		else if (_location.getDirectoryListing())
+		else if (_location.getDirectoryListing()) {
 			generateAutoIndex(fileToOpen);
+			buildResponse();
+		}
 		else
 			setStatus("404 Not Found");
 	}
@@ -312,8 +315,6 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-	std::cout << "root: " << _location.getRoot() << std::endl;
-	std::cout << "url: " << url << std::endl;
 	if (secondSlashPos == std::string::npos && url.find(".") == std::string::npos) // only directory
 		return (_servDrive + _location.getRoot());
 	else if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) { // directory and file
@@ -411,9 +412,7 @@ bool	Request::fileOrDirectory(const std::string& path) {
 	if (isDirectory(path))
 		return true;
 	else {
-		size_t	ext = path.find_last_of('.');
-		_extension = path.substr(ext);
-		fileType(_extension);
+		setExtension(path);
 		return false;
 	}
 }
@@ -433,3 +432,16 @@ std::string Request::getExtension() const {	return _extension; }
 void	Request::setResponse() { _response = _responseHeader + _responseBody; }
 
 std::string	Request::getResponse() const { return _response; }
+
+void	Request::setExtension(const std::string &path) {
+	size_t	ext = path.find_last_of('.');
+
+	if (ext != std::string::npos) {
+		_extension = path.substr(ext);
+		fileType(_extension);
+	}
+	else {
+		_extension = "";
+		_contentType = "Unsupported content type";
+	}
+}
