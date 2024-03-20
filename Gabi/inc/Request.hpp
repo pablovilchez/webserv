@@ -1,27 +1,35 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
-#include "libraries.hpp"
-#include "WebServer.hpp"
+# include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <map>
+#include <unistd.h>
+#include <dirent.h>
+#include <cstdio>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "header.hpp"
+#include "Location.hpp"
+#include "Config.hpp"
 
 class Location;
-class Server;
+class Config;
 
 class Request
 {
 	public:
-		/* Request();
-		Request(const Request& other);
-		Request& operator=(const Request& other); */
-		Request(const std::string &raw, const Server &srv);
+		Request(const std::string &raw);
 		~Request();
 
 		void	handleRequest();
 		void	handleGetMethod(std::string &fileToOpen);
 		void	handlePostMethod();
 		void	handleDeleteMethod(std::string &fileToDelete);
-		void	handleError();
-		void	defaultErrorPage(std::string errorCode);
+
 		std::string	extractPathFromUrl(std::string& url);
 		bool	validateRequest(const std::string& method);
 		void	parseHeader();
@@ -31,7 +39,6 @@ class Request
 		bool	fileExtension(const std::string& contentType);
 		bool	fileType(const std::string& extension);
 		void	setStatus(const std::string &status);
-		void	setExtension(const std::string &path);
 		std::string getPath() const;
 		std::string getRaw() const;
 		std::string getResponseHeader() const;
@@ -62,7 +69,7 @@ class Request
 		std::string	_boundary;
 		std::string	_status;
 		Location	_location;
-		Server		_config;
+		Config		_config;
 		std::string	_responseHeader;
 		std::string	_responseBody;
 		std::string	_response; // the whole response from server is saved here !!

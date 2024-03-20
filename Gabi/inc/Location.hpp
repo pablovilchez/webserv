@@ -1,20 +1,29 @@
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
-#include "libraries.hpp"
+# include <iostream>
+# include <set>
+# include <map>
+# include <vector>
 
 class Location
 {
 	public:
 		Location();
-		Location(const Location &other);
-		Location(const std::string &config);
-		Location& operator=(const Location &other);
+		Location(int error);
+		Location(const std::string &data);
 		~Location();
 
-		void defaultConfig();
-		void parseConfig(const std::string &config);
+		void parseData(const std::string &data);
 		void printData() const;
+
+		void setAcceptedMethod(const std::string &method);
+		void setLocation(const std::string &path);
+		void setRoot(const std::string &rootPath);
+		void setIndex(const std::string &indexPath);
+		void setDirectoryListing(const bool &value);
+		void setCgiExtension(const std::string &extension, const std::string &executable);
+		void setReturn(const int &httpCode, const std::string &redir);
 
 		bool isAcceptedMethod(const std::string &method) const;
 		std::string getLocation() const;
@@ -23,7 +32,7 @@ class Location
 		bool getDirectoryListing() const;
 		std::map<std::string, std::string> getCgiExtension() const;
 		std::map<int, std::string> getReturn() const;
-		bool isIndexFile(std::string& fileName) const;
+		bool isIndexFile(const std::string& fileName) const;
 
 	private:
 		std::string							_location;
