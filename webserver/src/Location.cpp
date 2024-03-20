@@ -78,7 +78,7 @@ void Location::defaultConfig() {
 	}
 	if(_root.empty())
         _root = "/var/default"; // debe empezar con /
-	if(_index.empty())
+	if(_index.empty()) // si en el config no hay index no hay que poner uno por defecto
 		_index.insert("index.html");
 }
 

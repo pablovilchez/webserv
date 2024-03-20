@@ -97,7 +97,9 @@ void Request::parseHeader()
 		pos = end + 2;
 	}
 	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1")
-			return (setStatus("400 Bad Request"));
+		return (setStatus("400 Bad Request"));
+	if (!validateRequest(_method))
+		return;
 	fileToOpen = extractPathFromUrl(_path);
 	if (access(fileToOpen.c_str(), F_OK) == -1)
 		return (setStatus("404 Not Found"));
@@ -149,14 +151,18 @@ void	Request::buildHeader() {
 }
 
 void	Request::buildResponse() {
-	if (fileToOpen != "" && _method == "GET") {
+	if (_method == "GET") {
 		std::fstream	fileStream(fileToOpen.c_str());
 		if (fileStream) {
 			_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 			fileStream.close();
+			setStatus("200 OK");
+			setExtension(fileToOpen);
 		}
+		else if (!_responseBody.empty())
+			setStatus("200 OK");
 		else
-		setStatus("500 Internal Server Error"); // Failed to open the file
+			setStatus("500 Internal Server Error"); // Failed to open the file
 	}
 	else if (_method == "POST")
 		_responseBody = "Request served";
@@ -180,7 +186,7 @@ bool	Request::validateRequest(const std::string& method) {
 		requestedLocation = _path;
 	_location = _config.getLocation(requestedLocation);
 	if (_location.getLocation() == "null") {
-		std::cout << "HERE  " << std::endl;
+		std::cout << "HERE " << std::endl;
 		setStatus("404 Not Found");
 		return false;
 	}
@@ -201,20 +207,20 @@ void	Request::generateAutoIndex(std::string &uri) {
 		std::cerr << "Error opening directory" << std::endl;
 		return;
 	}
-	_responseBody += "<html>\n <head>\n <title>Index of " + uri + "</title>\n </head>\n <body>";
-	_responseBody += "<h1>Index of " + uri + "</h1>";
+	_responseBody += "<html>\n <head>\n <title>Index of " + _location.getLocation() + "</title>\n </head>\n <body>";
+	_responseBody += "<h1>These are files inside " + _location.getLocation() + "</h1>";
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
 		if (currDir->d_type == DT_REG && std::string(currDir->d_name).find(".html") != std::string::npos) {
-			std::string	filePath = uri + std::string(currDir->d_name);
+			std::string	filePath = uri + "/" + std::string(currDir->d_name);
 			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
 		}
 	}
 	_responseBody += "</ul>\n";
 	_responseBody += "</body>\n";
 	_responseBody += "</html>\n";
+	_contentType = "text/html";
 	closedir(dir);
-	buildHeader();
 }
 
 /* std::string	Request::extractDirectory(const std::string& path) {
@@ -232,15 +238,14 @@ void	Request::generateAutoIndex(std::string &uri) {
 
 void	Request::handleGetMethod(std::string &fileToOpen){
 	
-	if (!validateRequest("GET") /* || access(fileToOpen.c_str(), R_OK) == -1 */)
-		return;
-	if (fileOrDirectory(_path)) { // path is a directory
+/* 	if (!validateRequest("GET") || access(fileToOpen.c_str(), R_OK) == -1)
+		return; */
+	if (fileOrDirectory(fileToOpen)) { // path is a directory
 		if (!_location.getReturn().empty()) {
 			std::map<int, std::string>	redirections = _location.getReturn();
 			if (redirections.find(301) != redirections.end()) {
 				std::string	redirectionLocation = redirections[301];
 				setStatus("301 Moved Permanently");
-				_contentType = "text/html";
 			}
 			buildResponse();
 		}
@@ -248,15 +253,17 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			const std::set<std::string>&	indexFiles = _location.getIndex();
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
-				fileToOpen += currIndexFile;
+				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
 					buildResponse();
 					break ;
 				}
 			}
 		}
-		else if (_location.getDirectoryListing())
+		else if (_location.getDirectoryListing()) {
 			generateAutoIndex(fileToOpen);
+			buildResponse();
+		}
 		else
 			setStatus("404 Not Found");
 	}
@@ -303,16 +310,19 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 		setStatus("500 Internal Server Error");
 }
 
+// por ahora falta "." ".." comprobaciones
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-	if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
+    std::cout << "root: " << _location.getRoot() << std::endl;
+
+    if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
 			return (_servDrive + _location.getRoot() + path);
 	}
-	return (_servDrive + _location.getRoot() + url);
+	return (_servDrive + _location.getRoot());
 }
 
 void	Request::handleRequest() {
@@ -398,13 +408,10 @@ bool	Request::isDirectory(const std::string& path) {
 }
 
 bool	Request::fileOrDirectory(const std::string& path) {
-
 	if (isDirectory(path))
 		return true;
 	else {
-		size_t	ext = path.find_last_of('.');
-		_extension = path.substr(ext);
-		fileType(_extension);
+		setExtension(path);
 		return false;
 	}
 }
@@ -441,7 +448,4 @@ void	Request::setResponse()
 	_response = _responseHeader + _responseBody;
 }
 
-std::string	Request::getResponse() const
-{
-	return _response;
-}
+std::string	Request::getResponse() const { return _response; }
