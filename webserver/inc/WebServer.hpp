@@ -11,7 +11,6 @@ class Server;
 
 class WebServer {
 	public:
-		// WebServerOrtxCan.cpp;
 		WebServer();
 		WebServer(const std::string &file);
 		WebServer(const WebServer &other);

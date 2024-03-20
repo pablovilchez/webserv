@@ -2,13 +2,11 @@
 
 /*______________________________UTILS-FUNCTIONS-START______________________________*/
 
-// It uses forbidden functions -> should be redone
-
 bool web_isComment(const std::string &line) {
-	for (size_t i = 0; i < line.length(); i++)
-	{
-		if (!std::isspace(line[i]))
+	for (size_t i = 0; i < line.length(); i++) {
+		if (!std::isspace(line[i])) {
 			return line[i] == '#';
+		}
 	}
 	return true;
 }
@@ -58,8 +56,9 @@ int createNewListener(int port , std::vector<Server> servers) {
 	std::cout << "Listening on port: " << port <<" [Servers: ";
 	for (it_serv = servers.begin(); it_serv != servers.end(); it_serv++) {
 		std::cout << (*it_serv).getServerName();
-		if (it_serv + 1 != servers.end() )
+		if (it_serv + 1 != servers.end()) {
 			std::cout << ", ";
+		}
 	}
 	std::cout << "]" << std::endl;
 
@@ -71,7 +70,6 @@ void initListeners(std::map<int, std::vector<Server> >& _portsMap, std::vector<p
 	std::map<int, std::vector<Server> >::const_iterator end = _portsMap.end();
 	for (it = _portsMap.begin(); it != end; it++) {
 		int listening = createNewListener(it->first, it->second);
-
 		_listeners.push_back(listening);
 		insertNewPollfd(_poll_fds, listening);
 	}
@@ -142,7 +140,6 @@ bool WebServer::correctConfig() const {
 /*______________________________UTILS-FUNCTIONS-END______________________________*/
 
 
-
 /*______________________________CLASS-METHODS-START______________________________*/
 
 bool WebServer::parseConfigFile(const std::string &file) {
@@ -152,28 +149,27 @@ bool WebServer::parseConfigFile(const std::string &file) {
 	int servers = 0;
 	int checkEnd = 0;
 
-	if (!fileStream.is_open())
-	{
+	if (!fileStream.is_open()) {
 		std::cerr << "Error: " << strerror(errno) << std::endl;
-		return (false);
+		return false;
 	}
-	while (std::getline(fileStream, line))
-	{
-		if (web_isComment(line))
+	while (std::getline(fileStream, line)) {
+		if (web_isComment(line)) {
 			continue;
-		if (line.find("server") != std::string::npos && line.find("{") != std::string::npos)
-		{
+		}
+		if (line.find("server") != std::string::npos && line.find("{") != std::string::npos) {
 			buffer = line;
 			buffer += "\n";
 			checkEnd = 1;
-			while (std::getline(fileStream, line) && checkEnd > 0)
-			{
+			while (std::getline(fileStream, line) && checkEnd > 0) {
 				buffer += line;
 				buffer += "\n";
-				if (line.find("{") != std::string::npos)
+				if (line.find("{") != std::string::npos) {
 					checkEnd++;
-				if (line.find("}") != std::string::npos)
+				}
+				if (line.find("}") != std::string::npos) {
 					checkEnd--;
+				}
 			}
 			Server servAux(buffer);
 			_servers.push_back(servAux);
@@ -183,16 +179,16 @@ bool WebServer::parseConfigFile(const std::string &file) {
 			for (it = ports.begin(); it != ports.end(); it++) {
 				_portsMap[*it].push_back(servAux);
 			}
-            if (!servAux.checkConfig()){
+            if (!servAux.checkConfig()) {
                 std::cerr << "Error: invalid server config" << std::endl;
 				fileStream.close();
-                return (false);
+                return false;
             }
 			servers++;
 		}
 	}
 	fileStream.close();
-    return (true);
+    return true;
 }
 
 void WebServer::initService() {
@@ -253,14 +249,7 @@ void WebServer::initService() {
 						std::string request_line;
 						getline(request, request_line);
 
-						// Get server name and return server info
-
 						Server server = getServerConfig(buffer);
-						if (server.getServerName() == "null") {
-							std::cout << "Server not found" << std::endl;
-							it->events = POLLERR;
-							break;
-						}
 
 						Request newRequest(buffer, server);
 						response = newRequest.getResponse();
@@ -270,27 +259,26 @@ void WebServer::initService() {
 			}
 			else if (it->revents & POLLOUT) {
 				send(it->fd, response.c_str(), response.size(), 0);
+				std::cout << "Client disconnected: " << it->fd << std::endl;
 				close(it->fd);
 				_poll_fds.erase(it);
 				memset(buffer, 0, 1024);
 				response.clear();
 			}
-
-
-/* 			else if (it->revents & POLLERR) {
+			else if (it->revents & POLLERR) {
 				std::vector<int>::const_iterator it_listen;
 				for (it_listen = _listeners.begin(); it_listen != _listeners.end(); it_listen++) {
 					if (it->fd == *it_listen) {
 						perror("listen socket error");
 						_exit(1);
 					}
-                	else {
-						perror("client socket error");
-						close(it->fd);
-						_poll_fds.erase(it);
-                	}
 				}
-			} */
+				if (it_listen == _listeners.end()) {
+					perror("client socket error");
+					close(it->fd);
+					_poll_fds.erase(it);
+				}
+			}
 		}
 	}
 }

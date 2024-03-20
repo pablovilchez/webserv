@@ -6,26 +6,12 @@ Location::Location() : _directoryListing(false) {
 
 Location::Location(const Location &other) {
 	_location = other._location;
-
-	for (std::set<std::string>::const_iterator it = other._acceptedMethods.begin(); it != other._acceptedMethods.end(); it++) {
-		_acceptedMethods.insert(*it);
-	}
-
+	_acceptedMethods = other._acceptedMethods;
 	_root = other._root;
-
-	for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
-		_index.insert(*it);
-	}
-
+	_index = other._index;
 	_directoryListing = other._directoryListing;
-
-	for (std::map<std::string, std::string>::const_iterator it = other._cgiExtension.begin(); it != other._cgiExtension.end(); it++) {
-		_cgiExtension.insert(std::make_pair(it->first, it->second));
-	}
-
-	for (std::map<int, std::string>::const_iterator it = other._return.begin(); it != other._return.end(); it++) {
-		_return.insert(std::make_pair(it->first, it->second));
-	}
+	_cgiExtension = other._cgiExtension;
+	_return = other._return;
 }
 
 Location::Location(const std::string &config) : _directoryListing(false) {
@@ -35,30 +21,12 @@ Location::Location(const std::string &config) : _directoryListing(false) {
 Location& Location::operator=(const Location &other) {
 	if (this != &other) {
 		_location = other._location;
-
-		_acceptedMethods.clear();
-		for (std::set<std::string>::const_iterator it = other._acceptedMethods.begin(); it != other._acceptedMethods.end(); it++) {
-			_acceptedMethods.insert(*it);
-		}
-
+		_acceptedMethods = other._acceptedMethods;
 		_root = other._root;
-
-		_index.clear();
-		for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
-			_index.insert(*it);
-		}
-
+		_index = other._index;
 		_directoryListing = other._directoryListing;
-
-		_cgiExtension.clear();
-		for (std::map<std::string, std::string>::const_iterator it = other._cgiExtension.begin(); it != other._cgiExtension.end(); it++) {
-			_cgiExtension.insert(std::make_pair(it->first, it->second));
-		}
-
-		_return.clear();
-		for (std::map<int, std::string>::const_iterator it = other._return.begin(); it != other._return.end(); it++) {
-			_return.insert(std::make_pair(it->first, it->second));
-		}
+		_cgiExtension = other._cgiExtension;
+		_return = other._return;
 	}
 	return *this;
 }
@@ -68,25 +36,28 @@ Location::~Location() {
 }
 
 void Location::defaultConfig() {
-	if(_location.empty())
+	if(_location.empty()) {
 		_location= "/default";
+	}
 	if(_acceptedMethods.empty())
 	{
 		_acceptedMethods.insert("GET");
 		_acceptedMethods.insert("POST");
 		_acceptedMethods.insert("DELETE");
 	}
-	if(_root.empty())
-        _root = "/var/default"; // debe empezar con /
-	if(_index.empty()) // si en el config no hay index no hay que poner uno por defecto
+	if(_root.empty()) {
+        _root = "/var/default";
+	}
+	if(_index.empty()) {
 		_index.insert("index.html");
+	}
 }
 
 bool loc_isComment(const std::string &line) {
-	for (size_t i = 0; i < line.length(); i++)
-	{
-		if (!std::isspace(line[i]))
+	for (size_t i = 0; i < line.length(); i++) {
+		if (!std::isspace(line[i])) {
 			return line[i] == '#';
+		}
 	}
 	return true;
 }
@@ -97,60 +68,60 @@ void Location::parseConfig(const std::string &config) {
 	std::string key;
 	std::string value;
 
-	while (std::getline(stream, line))
-	{
-		if (loc_isComment(line))
+	while (std::getline(stream, line)) {
+		if (loc_isComment(line)) {
 			continue;
+		}
 		std::istringstream lineStream(line);
 		lineStream >> key;
-		if (key == "location")
-		{
+		if (key == "location") {
 			lineStream >> value;
 			_location = value;
 		}
-		else if (key == "root")
-		{
+		else if (key == "root") {
 			lineStream >> value;
 			_root = value;
 		}
-		else if (key == "autoindex")
-		{
+		else if (key == "autoindex") {
 			lineStream >> value;
-			if(value == "on")
+			if(value == "on") {
 				_directoryListing = true;
-			else
+			}
+			else {
 				_directoryListing = false;
+			}
 		}
-		else if (key == "index")
-		{
-			while (lineStream >> value)
+		else if (key == "index") {
+			while (lineStream >> value) {
 				_index.insert(value);
+			}
 		}
-		else if (key == "allow_methods")
-		{
-			while (lineStream >> value)
+		else if (key == "allow_methods") {
+			while (lineStream >> value) {
 				_acceptedMethods.insert(value);
+			}
 		}
-		else if (key == "return")
-		{
+		else if (key == "return") {
 			int code;
 			lineStream >> code;
 			lineStream >> value;
 			_return.insert(std::make_pair(code, value));
 		}
-		else if (key == "fastcgi_pass")
-		{
+		else if (key == "fastcgi_pass") {
 			lineStream >> value;
 			std::string extension = value;
 			lineStream >> value;
 			_cgiExtension[extension] = value;
 		}
-		else if(key == "{")
+		else if(key == "{") {
 			continue;
-		else if(key == "}")
+		}
+		else if(key == "}") {
 			break;
-		else
+		}
+		else {
 			std::cerr << "Error: Unknown key: " << key << std::endl;
+		}
 	}
 	defaultConfig();
 }
@@ -160,26 +131,30 @@ void Location::printData() const {
 	std::cout << "{" << std::endl;
 	std::cout << "  Accepted methods: ";
 	std::set<std::string>::iterator it;
-	for(it = _acceptedMethods.begin(); it != _acceptedMethods.end(); it++)
+	for(it = _acceptedMethods.begin(); it != _acceptedMethods.end(); it++) {
 		std::cout << *it << "  ";
+	}
 	std::cout << std::endl;
 	std::cout << "  Root:  " << _root << std::endl;
 	std::cout << "  Index:  ";
-	for(it = _index.begin(); it != _index.end(); it++)
+	for(it = _index.begin(); it != _index.end(); it++) {
 		std::cout << *it << "  ";
+	}
 	std::cout << std::endl;
 	std::cout << "  Directory listing:  " << (_directoryListing ? "ON" : "OFF");
 	std::cout << std::endl;
 	std::cout << "  CGI extensions:  ";
 	std::map<std::string, std::string>::const_iterator it_2;
-	for(it_2 = _cgiExtension.begin(); it_2 != _cgiExtension.end(); it_2++)
+	for(it_2 = _cgiExtension.begin(); it_2 != _cgiExtension.end(); it_2++) {
 		std::cout << it_2->first << "  ";
+	}
 	std::cout << std::endl;
 	std::cout << "  Return:  ";
 	std::map<int, std::string>::const_iterator it_3;
 	it_3 = _return.begin();
-	if(it_3 != _return.end())
+	if(it_3 != _return.end()) {
 		std::cout << it_3->first;
+	}
 	std::cout << std::endl << "}" << std::endl;
 }
 

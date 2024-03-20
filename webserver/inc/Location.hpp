@@ -24,7 +24,6 @@ class Location
 		std::map<std::string, std::string> getCgiExtension() const;
 		std::map<int, std::string> getReturn() const;
 
-
 	private:
 		std::string							_location;
 		std::set<std::string>				_acceptedMethods;
