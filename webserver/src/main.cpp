@@ -6,9 +6,8 @@ int main(int argc, char **argv) {
         return 1;
     }
     WebServer server1(argv[1]);
-    if (server1.correctConfig()) {
-        server1.initService();
+    if (!server1.correctConfig())
         return 1;
-    }
+    server1.initService();
     return 0;
 }

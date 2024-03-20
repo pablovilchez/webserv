@@ -10,10 +10,10 @@ class Server
 		Server();
 		Server(const Server& other);
 		Server& operator=(const Server& other);
-		Server(const std::string &serverConfig, int servNum);
+		Server(const std::string &serverConfig);
 		~Server();
 
-		void parseServer(const std::string &serverConfig, int servNum);
+		void parseServer(const std::string &serverConfig);
         bool checkConfig();
 		void printData();
 

@@ -146,6 +146,10 @@ const Server &WebServer::getServerConfig(char *buffer) {
 	return *(_portsMap.begin()->second.begin());
 }
 
+bool WebServer::correctConfig() const {
+	return _correctConfig;
+}
+
 /*______________________________UTILS-FUNCTIONS-END______________________________*/
 
 
@@ -158,7 +162,6 @@ bool WebServer::parseConfigFile(const std::string &file) {
 	std::string buffer;
 	int servers = 0;
 	int checkEnd = 0;
-	int servNum = 0;
 
 	if (!fileStream.is_open())
 	{
@@ -183,7 +186,7 @@ bool WebServer::parseConfigFile(const std::string &file) {
 				if (line.find("}") != std::string::npos)
 					checkEnd--;
 			}
-			Server servAux(buffer, servNum++);
+			Server servAux(buffer);
 			_servers.push_back(servAux);
 
 			std::set<int>ports = servAux.getPort();
@@ -193,6 +196,7 @@ bool WebServer::parseConfigFile(const std::string &file) {
 			}
             if (!servAux.checkConfig()){
                 std::cerr << "Error: invalid server config" << std::endl;
+				fileStream.close();
                 return (false);
             }
 			servers++;

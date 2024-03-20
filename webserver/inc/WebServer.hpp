@@ -21,7 +21,7 @@ class WebServer {
 		bool parseConfigFile(const std::string &file);
 		void initService();
 		const Server &getServerConfig(char *buffer);
-        bool correctConfig();
+		bool correctConfig() const;
 
 	private:
 		std::vector<Server>	                _servers;
