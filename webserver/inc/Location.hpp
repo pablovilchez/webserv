@@ -7,14 +7,9 @@ class Location
 {
 	public:
 		Location();
-<<<<<<< HEAD
-		Location(int error);
-		Location(const std::string &data);
-=======
 		Location(const Location &other);
 		Location(const std::string &config);
 		Location& operator=(const Location &other);
->>>>>>> origin/main
 		~Location();
 
 		void defaultConfig();

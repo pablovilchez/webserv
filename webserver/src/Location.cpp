@@ -11,15 +11,7 @@ Location::Location(const Location &other) {
 		_acceptedMethods.insert(*it);
 	}
 
-<<<<<<< HEAD
-Location::Location(int error) {
-	_location = "null";
-}
-
-Location::~Location() { }
-=======
 	_root = other._root;
->>>>>>> origin/main
 
 	for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
 		_index.insert(*it);
@@ -219,11 +211,8 @@ std::map<int, std::string> Location::getReturn() const {
 std::map<std::string, std::string> Location::getCgiExtension() const {
 	return _cgiExtension;
 }
-<<<<<<< HEAD
 
 // Check if the file is in the index set
 bool	Location::isIndexFile(std::string& fileName) const {
 	return _index.find(fileName) != _index.end();
 }
-=======
->>>>>>> origin/main
