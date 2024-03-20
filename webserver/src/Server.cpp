@@ -96,9 +96,10 @@ void Server::parseServer(const std::string &serverConfig) {
 		lineStream >> key;
 		if (key == "server_name")
 		{
-			lineStream >> value;
-			//std::cout << "value: " << value << std::endl;
-			_serverName = value;
+			if (lineStream >> value)
+				_serverName = value;
+			else 
+				_serverName = "";
 		}
 		else if (key == "listen")
 		{
