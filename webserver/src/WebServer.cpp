@@ -2,24 +2,7 @@
 
 /*______________________________UTILS-FUNCTIONS-START______________________________*/
 
-/*
 // It uses forbidden functions -> should be redone
-void printServersInfo(int port, std::vector<const Server*> servers) {
-	for (std::vector<const Server*>::const_iterator it_serv = servers.begin(); it_serv != servers.end(); it_serv++) {
-		char hostName[1024];
-		gethostname(hostName, 1024);
-		std::cout << "Server: " << (*it_serv)->getConfig().getServerName() << ":" << port << " started on " << hostName << std::endl;
-
-		hostent* host = gethostbyname(hostName);
-		if (host == NULL) {
-		herror("gethostbyname");
-		_exit(1);
-		}
-
-		std::cout << "IP Address: " << inet_ntoa(*(in_addr*)*host->h_addr_list) << std::endl;
-	}
-}
-*/
 
 bool web_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
@@ -37,7 +20,7 @@ void insertNewPollfd(std::vector<pollfd> &_poll_fds, int socket) {
 	_poll_fds.push_back(listen_pollfd);
 }
 
-int createNewListener(int port) {
+int createNewListener(int port , std::vector<Server> servers) {
 	int listening = socket(PF_INET, SOCK_STREAM, 0);
 	if (listening == -1) {
 		perror("Can't create a socket");
@@ -55,13 +38,13 @@ int createNewListener(int port) {
 		_exit(-1);
 	}
 
-	struct sockaddr_in _server_addr;
-	_server_addr.sin_family = AF_INET;
-	_server_addr.sin_port = htons(port);
-	_server_addr.sin_addr.s_addr = INADDR_ANY;
-	memset(&(_server_addr.sin_zero), '\0', 8);
+	struct sockaddr_in server_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(port);
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	memset(&(server_addr.sin_zero), '\0', 8);
 
-	if(bind(listening, reinterpret_cast<sockaddr*>(&_server_addr), sizeof(_server_addr)) == -1) {
+	if(bind(listening, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == -1) {
 		perror("Can't bind to IP/port");
 		_exit(-1);
 	}
@@ -71,6 +54,15 @@ int createNewListener(int port) {
 		_exit (-1);
 	}
 
+	std::vector<Server> ::const_iterator it_serv;
+	std::cout << "Listening on port: " << port <<" [Servers: ";
+	for (it_serv = servers.begin(); it_serv != servers.end(); it_serv++) {
+		std::cout << (*it_serv).getServerName();
+		if (it_serv + 1 != servers.end() )
+			std::cout << ", ";
+	}
+	std::cout << "]" << std::endl;
+
 	return listening;
 }
 
@@ -78,10 +70,7 @@ void initListeners(std::map<int, std::vector<Server> >& _portsMap, std::vector<p
 	std::map<int, std::vector<Server> >::const_iterator it;
 	std::map<int, std::vector<Server> >::const_iterator end = _portsMap.end();
 	for (it = _portsMap.begin(); it != end; it++) {
-		int listening = createNewListener(it->first);
-
-		// Print server info
-		//printServersInfo(it->first, it->second);
+		int listening = createNewListener(it->first, it->second);
 
 		_listeners.push_back(listening);
 		insertNewPollfd(_poll_fds, listening);
@@ -272,7 +261,7 @@ void WebServer::initService() {
 							it->events = POLLERR;
 							break;
 						}
-						
+
 						Request newRequest(buffer, server);
 						response = newRequest.getResponse();
 						it->events = POLLOUT;
