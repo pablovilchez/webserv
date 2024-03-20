@@ -11,8 +11,8 @@ Server::Server() : _maxSize(0) {
 	_locations.push_back(newLocation);
 }
 
-Server::Server(const std::string &serverConfig, int servNum) {
-	parseServer(serverConfig, servNum);
+Server::Server(const std::string &serverConfig) {
+	parseServer(serverConfig);
 	if (DEBUG) printData();
 }
 
@@ -81,7 +81,7 @@ bool conf_isComment(const std::string &line) {
 	return true;
 }
 
-void Server::parseServer(const std::string &serverConfig, int servNum) {
+void Server::parseServer(const std::string &serverConfig) {
 	std::istringstream stream(serverConfig);
 	std::string line;
 	std::string key;
@@ -97,6 +97,7 @@ void Server::parseServer(const std::string &serverConfig, int servNum) {
 		if (key == "server_name")
 		{
 			lineStream >> value;
+			//std::cout << "value: " << value << std::endl;
 			_serverName = value;
 		}
 		else if (key == "listen")
@@ -146,7 +147,8 @@ void Server::parseServer(const std::string &serverConfig, int servNum) {
 }
 
 bool Server::checkConfig() {
-    if(_port.empty() || _serverName.empty() || _locations.empty())
+	//std::cout << "Server name: " << _serverName << std::endl;
+    if(_port.empty() || _serverName.empty() || _serverName == "" || _locations.empty())
         return (false);
     if(_maxSize == 0)
         _maxSize = 1024 * 10;
