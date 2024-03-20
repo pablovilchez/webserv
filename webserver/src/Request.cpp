@@ -154,16 +154,17 @@ void	Request::buildHeader() {
 void	Request::buildResponse() {
 	if (_method == "GET") {
 		std::fstream	fileStream(fileToOpen.c_str());
-		if (fileStream) {
+
+		if (!_responseBody.empty())
+			setStatus("200 OK");
+		else if (fileStream) {
 			_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 			fileStream.close();
 			setStatus("200 OK");
 			setExtension(fileToOpen);
 		}
-		else if (!_responseBody.empty())
-			setStatus("200 OK");
 		else
-			setStatus("500 Internal Server Error"); // Failed to open the file
+			handleError();
 	}
 	else if (_method == "POST")
 		_responseBody = "Request served";
@@ -238,9 +239,6 @@ void	Request::generateAutoIndex(std::string &uri) {
  */
 
 void	Request::handleGetMethod(std::string &fileToOpen){
-	
-/* 	if (!validateRequest("GET") || access(fileToOpen.c_str(), R_OK) == -1)
-		return; */
 	if (fileOrDirectory(fileToOpen)) { // path is a directory
 		if (!_location.getReturn().empty()) {
 			std::map<int, std::string>	redirections = _location.getReturn();
@@ -417,6 +415,49 @@ bool	Request::fileOrDirectory(const std::string& path) {
 	}
 }
 
+void	Request::setExtension(const std::string &path) {
+	size_t	ext = path.find_last_of('.');
+
+	if (ext != std::string::npos) {
+		_extension = path.substr(ext);
+		fileType(_extension);
+	}
+	else {
+		_extension = "";
+		_contentType = "Unsupported content type";
+	}
+}
+
+void	Request::defaultErrorPage(std::string errorCode) {
+	_responseBody += "<html>\n";
+	_responseBody += "<head>\n";
+	_responseBody += "<title>Error " + errorCode + "</title>\n";
+	_responseBody += "</head>\n";
+	_responseBody += "<body>\n";
+	_responseBody += "<h1>Error " + errorCode +"</h1>\n";
+	_responseBody += "<body>\n";
+	_responseBody += "<html>\n";
+}
+
+void	Request::handleError() {
+	std::string	errCodeStr = _status.substr(0, 3);
+	int			errCode = std::atoi(errCodeStr.c_str());
+
+	if ( _config.getErrorPage(errCode)!= "" && !(_config.getErrorPage(errCode)).empty()) {
+		std::string	errorFileName = _servDrive + "/var/www/error/" + _config.getErrorPage(errCode);
+		std::ifstream file(errorFileName);
+		if (file.is_open()) {
+			std::string	line;
+			while (std::getline(file, line))
+				_responseBody += line;
+			file.close();
+		}
+	}
+	else
+		defaultErrorPage(errCodeStr);
+	_contentType = "text/html";
+}
+
 std::string Request::getPath() const { return _path; }
 
 void	Request::setStatus(const std::string &status) {	_status = status; }
@@ -432,16 +473,3 @@ std::string Request::getExtension() const {	return _extension; }
 void	Request::setResponse() { _response = _responseHeader + _responseBody; }
 
 std::string	Request::getResponse() const { return _response; }
-
-void	Request::setExtension(const std::string &path) {
-	size_t	ext = path.find_last_of('.');
-
-	if (ext != std::string::npos) {
-		_extension = path.substr(ext);
-		fileType(_extension);
-	}
-	else {
-		_extension = "";
-		_contentType = "Unsupported content type";
-	}
-}
