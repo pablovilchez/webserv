@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request(const std::string &raw) : _raw(raw) {
+Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config(srv) {
 	_method = "";
 	_path = "";
 	_version = "";
@@ -19,6 +19,7 @@ Request::Request(const std::string &raw) : _raw(raw) {
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
 	handleRequest();
+    _config.printData();
 }
 
 Request::~Request() { }
@@ -314,9 +315,9 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-    std::cout << "root: " << _location.getRoot() << std::endl;
-
-    if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) {
+	if (secondSlashPos == std::string::npos && url.find(".") == std::string::npos) // only directory
+		return (_servDrive + _location.getRoot());
+	else if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) { // directory and file
 		size_t	pathStartPos = secondSlashPos;
 		std::string	path = url.substr(pathStartPos);
 		if (path[1])
@@ -416,36 +417,31 @@ bool	Request::fileOrDirectory(const std::string& path) {
 	}
 }
 
-std::string Request::getPath() const
-{
-	return _path;
-}
+std::string Request::getPath() const { return _path; }
 
-void	Request::setStatus(const std::string &status) {
-	_status = status;
-}
+void	Request::setStatus(const std::string &status) {	_status = status; }
 
-std::string	Request::getResponseHeader() const {
-	return _responseHeader;
-}
+std::string	Request::getResponseHeader() const { return _responseHeader; }
 
-std::string	Request::getResponseBody() const {
-	return _responseBody;
-}
+std::string	Request::getResponseBody() const { return _responseBody; }
 
-std::string Request::getMethod() const
-{
-	return _method;
-}
+std::string Request::getMethod() const { return _method; }
 
-std::string Request::getExtension() const
-{
-	return _extension;
-}
+std::string Request::getExtension() const {	return _extension; }
 
-void	Request::setResponse()
-{
-	_response = _responseHeader + _responseBody;
-}
+void	Request::setResponse() { _response = _responseHeader + _responseBody; }
 
 std::string	Request::getResponse() const { return _response; }
+
+void	Request::setExtension(const std::string &path) {
+	size_t	ext = path.find_last_of('.');
+
+	if (ext != std::string::npos) {
+		_extension = path.substr(ext);
+		fileType(_extension);
+	}
+	else {
+		_extension = "";
+		_contentType = "Unsupported content type";
+	}
+}
