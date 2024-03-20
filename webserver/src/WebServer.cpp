@@ -152,7 +152,7 @@ const Server &WebServer::getServerConfig(char *buffer) {
 
 /*______________________________CLASS-METHODS-START______________________________*/
 
-void WebServer::parseConfigFile(const std::string &file) {
+bool WebServer::parseConfigFile(const std::string &file) {
 	std::ifstream fileStream(file.c_str());
 	std::string line;
 	std::string buffer;
@@ -163,7 +163,7 @@ void WebServer::parseConfigFile(const std::string &file) {
 	if (!fileStream.is_open())
 	{
 		std::cerr << "Error: " << strerror(errno) << std::endl;
-		return;
+		return (false);
 	}
 	while (std::getline(fileStream, line))
 	{
@@ -191,10 +191,15 @@ void WebServer::parseConfigFile(const std::string &file) {
 			for (it = ports.begin(); it != ports.end(); it++) {
 				_portsMap[*it].push_back(servAux);
 			}
+            if (!servAux.checkConfig()){
+                std::cerr << "Error: invalid server config" << std::endl;
+                return (false);
+            }
 			servers++;
 		}
 	}
 	fileStream.close();
+    return (true);
 }
 
 void WebServer::initService() {

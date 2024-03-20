@@ -13,8 +13,8 @@ class Server
 		Server(const std::string &serverConfig, int servNum);
 		~Server();
 
-		void defaultServer(int servNum);
 		void parseServer(const std::string &serverConfig, int servNum);
+        bool checkConfig();
 		void printData();
 
 		void setLocation(Location location);

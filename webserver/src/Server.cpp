@@ -72,17 +72,6 @@ Server::~Server() {
 	} */
 }
 
-void Server::defaultServer(int servNum) {
-	if(_port.empty())
-		_port.insert(8080);
-	if(_serverName.empty())
-		_serverName = "nuevo_" + std::to_string(servNum);
-	if(_errorPages.empty())
-		_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
-	if(_maxSize == 0)
-		_maxSize = 1024 * 10;
-}
-
 bool conf_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++)
 	{
@@ -154,7 +143,14 @@ void Server::parseServer(const std::string &serverConfig, int servNum) {
 		else
 			std::cerr << "Error: Unknown key: " << key << std::endl;
 	}
-	defaultServer(servNum);
+}
+
+bool Server::checkConfig() {
+    if(_port.empty() || _serverName.empty() || _locations.empty())
+        return (false);
+    if(_maxSize == 0)
+        _maxSize = 1024 * 10;
+    return (true);
 }
 
 void Server::printData() {

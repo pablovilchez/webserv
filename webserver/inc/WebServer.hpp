@@ -18,15 +18,17 @@ class WebServer {
 		WebServer& operator=(const WebServer &other);
 		~WebServer();
 
-		void parseConfigFile(const std::string &file);
+		bool parseConfigFile(const std::string &file);
 		void initService();
 		const Server &getServerConfig(char *buffer);
+        bool correctConfig();
 
 	private:
-		std::vector<Server>	_servers;
-		std::vector<pollfd>			_poll_fds;
-		std::vector<int>			_listeners;
+		std::vector<Server>	                _servers;
+		std::vector<pollfd>			        _poll_fds;
+		std::vector<int>			        _listeners;
 		std::map<int, std::vector<Server> > _portsMap;
+        bool                                _correctConfig;
 };
 
 #endif

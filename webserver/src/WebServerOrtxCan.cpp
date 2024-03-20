@@ -4,8 +4,8 @@ WebServer::WebServer() {
 
 }
 
-WebServer::WebServer(const std::string &file) {
-	parseConfigFile(file);
+WebServer::WebServer(const std::string &file) : _correctConfig(false) {
+	_correctConfig = parseConfigFile(file);
 }
 
 WebServer::WebServer(const WebServer &other) {
