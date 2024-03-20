@@ -1,31 +1,170 @@
 #include "Location.hpp"
 
-Location::Location() {
-	_location = "/default";
-	_acceptedMethods.insert("GET");
-	_acceptedMethods.insert("POST");
-	_acceptedMethods.insert("DELETE");
-	_root = "var/default";
-	_index.insert("index.html");
-	_directoryListing = false;
+Location::Location() : _directoryListing(false) {
+	defaultConfig();
 }
 
-Location::Location(const std::string &data) {
-	parseData(data);
-}
+Location::Location(const Location &other) {
+	_location = other._location;
 
+	for (std::set<std::string>::const_iterator it = other._acceptedMethods.begin(); it != other._acceptedMethods.end(); it++) {
+		_acceptedMethods.insert(*it);
+	}
+
+<<<<<<< HEAD
 Location::Location(int error) {
 	_location = "null";
 }
 
 Location::~Location() { }
+=======
+	_root = other._root;
+>>>>>>> origin/main
 
-void Location::parseData(const std::string &data) {
-	(void)data;
+	for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
+		_index.insert(*it);
+	}
+
+	_directoryListing = other._directoryListing;
+
+	for (std::map<std::string, std::string>::const_iterator it = other._cgiExtension.begin(); it != other._cgiExtension.end(); it++) {
+		_cgiExtension.insert(std::make_pair(it->first, it->second));
+	}
+
+	for (std::map<int, std::string>::const_iterator it = other._return.begin(); it != other._return.end(); it++) {
+		_return.insert(std::make_pair(it->first, it->second));
+	}
+}
+
+Location::Location(const std::string &config) : _directoryListing(false) {
+	parseConfig(config);
+}
+
+Location& Location::operator=(const Location &other) {
+	if (this != &other) {
+		_location = other._location;
+
+		_acceptedMethods.clear();
+		for (std::set<std::string>::const_iterator it = other._acceptedMethods.begin(); it != other._acceptedMethods.end(); it++) {
+			_acceptedMethods.insert(*it);
+		}
+
+		_root = other._root;
+
+		_index.clear();
+		for (std::set<std::string>::const_iterator it = other._index.begin(); it != other._index.end(); it++) {
+			_index.insert(*it);
+		}
+
+		_directoryListing = other._directoryListing;
+
+		_cgiExtension.clear();
+		for (std::map<std::string, std::string>::const_iterator it = other._cgiExtension.begin(); it != other._cgiExtension.end(); it++) {
+			_cgiExtension.insert(std::make_pair(it->first, it->second));
+		}
+
+		_return.clear();
+		for (std::map<int, std::string>::const_iterator it = other._return.begin(); it != other._return.end(); it++) {
+			_return.insert(std::make_pair(it->first, it->second));
+		}
+	}
+	return *this;
+}
+
+Location::~Location() {
+
+}
+
+void Location::defaultConfig() {
+	if(_location.empty())
+		_location= "/default";
+	if(_acceptedMethods.empty())
+	{
+		_acceptedMethods.insert("GET");
+		_acceptedMethods.insert("POST");
+		_acceptedMethods.insert("DELETE");
+	}
+	if(_root.empty())
+        _root = "/var/default"; // debe empezar con /
+	if(_index.empty()) // si en el config no hay index no hay que poner uno por defecto
+		_index.insert("index.html");
+}
+
+bool loc_isComment(const std::string &line) {
+	for (size_t i = 0; i < line.length(); i++)
+	{
+		if (!std::isspace(line[i]))
+			return line[i] == '#';
+	}
+	return true;
+}
+
+void Location::parseConfig(const std::string &config) {
+	std::istringstream stream(config);
+	std::string line;
+	std::string key;
+	std::string value;
+
+	while (std::getline(stream, line))
+	{
+		if (loc_isComment(line))
+			continue;
+		std::istringstream lineStream(line);
+		lineStream >> key;
+		if (key == "location")
+		{
+			lineStream >> value;
+			_location = value;
+		}
+		else if (key == "root")
+		{
+			lineStream >> value;
+			_root = value;
+		}
+		else if (key == "autoindex")
+		{
+			lineStream >> value;
+			if(value == "on")
+				_directoryListing = true;
+			else
+				_directoryListing = false;
+		}
+		else if (key == "index")
+		{
+			while (lineStream >> value)
+				_index.insert(value);
+		}
+		else if (key == "allow_methods")
+		{
+			while (lineStream >> value)
+				_acceptedMethods.insert(value);
+		}
+		else if (key == "return")
+		{
+			int code;
+			lineStream >> code;
+			lineStream >> value;
+			_return.insert(std::make_pair(code, value));
+		}
+		else if (key == "fastcgi_pass")
+		{
+			lineStream >> value;
+			std::string extension = value;
+			lineStream >> value;
+			_cgiExtension[extension] = value;
+		}
+		else if(key == "{")
+			continue;
+		else if(key == "}")
+			break;
+		else
+			std::cerr << "Error: Unknown key: " << key << std::endl;
+	}
+	defaultConfig();
 }
 
 void Location::printData() const {
-	std::cout << "Location:  " << _location << std::endl;
+	std::cout << "Location  " << _location << std::endl;
 	std::cout << "{" << std::endl;
 	std::cout << "  Accepted methods: ";
 	std::set<std::string>::iterator it;
@@ -50,35 +189,6 @@ void Location::printData() const {
 	if(it_3 != _return.end())
 		std::cout << it_3->first;
 	std::cout << std::endl << "}" << std::endl;
-}
-
-// SETTERS ---------------------------------
-void Location::setLocation(const std::string &path) {
-	_location = path;
-}
-
-void Location::setAcceptedMethod(const std::string &method) {
-	_acceptedMethods.insert(method);
-}
-
-void Location::setRoot(const std::string &rootPath) {
-	_root = rootPath;
-}
-
-void Location::setIndex(const std::string &index) {
-	_index.insert(index);
-}
-
-void Location::setDirectoryListing(const bool &value) {
-	_directoryListing = value;
-}
-
-void Location::setCgiExtension(const std::string &extension, const std::string &executable) {
-	_cgiExtension[extension] = executable;
-}
-
-void Location::setReturn(const int &httpCode, const std::string &redir) {
-	_return[httpCode] = redir;
 }
 
 // GETTERS ---------------------------------
@@ -109,8 +219,11 @@ std::map<int, std::string> Location::getReturn() const {
 std::map<std::string, std::string> Location::getCgiExtension() const {
 	return _cgiExtension;
 }
+<<<<<<< HEAD
 
 // Check if the file is in the index set
 bool	Location::isIndexFile(std::string& fileName) const {
 	return _index.find(fileName) != _index.end();
 }
+=======
+>>>>>>> origin/main

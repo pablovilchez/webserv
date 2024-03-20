@@ -1,29 +1,25 @@
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
-# include <iostream>
-# include <set>
-# include <map>
-# include <vector>
+#include "libraries.hpp"
 
 class Location
 {
 	public:
 		Location();
+<<<<<<< HEAD
 		Location(int error);
 		Location(const std::string &data);
+=======
+		Location(const Location &other);
+		Location(const std::string &config);
+		Location& operator=(const Location &other);
+>>>>>>> origin/main
 		~Location();
 
-		void parseData(const std::string &data);
+		void defaultConfig();
+		void parseConfig(const std::string &config);
 		void printData() const;
-
-		void setAcceptedMethod(const std::string &method);
-		void setLocation(const std::string &path);
-		void setRoot(const std::string &rootPath);
-		void setIndex(const std::string &indexPath);
-		void setDirectoryListing(const bool &value);
-		void setCgiExtension(const std::string &extension, const std::string &executable);
-		void setReturn(const int &httpCode, const std::string &redir);
 
 		bool isAcceptedMethod(const std::string &method) const;
 		std::string getLocation() const;
