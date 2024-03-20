@@ -152,24 +152,23 @@ void	Request::buildHeader() {
 }
 
 void	Request::buildResponse() {
-	if (_method == "GET") {
-		std::fstream	fileStream(fileToOpen.c_str());
-
-		if (!_responseBody.empty())
-			setStatus("200 OK");
-		else if (fileStream) {
-			_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
-			fileStream.close();
-			setStatus("200 OK");
-			setExtension(fileToOpen);
+	if (!handleError()) {
+		if (_method == "GET") {
+			std::fstream	fileStream(fileToOpen.c_str());
+			if (!_responseBody.empty())
+				setStatus("200 OK");
+			else if (fileStream) {
+				_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
+				fileStream.close();
+				setStatus("200 OK");
+				setExtension(fileToOpen);
+			}
 		}
-		else
-			handleError();
+		else if (_method == "POST")
+			_responseBody = "Request served";
+		else if (_method == "DELETE")
+			_contentType = "text/plain";
 	}
-	else if (_method == "POST")
-		_responseBody = "Request served";
-	else if (_method == "DELETE")
-		_contentType = "text/plain";
 	buildHeader();
 	setResponse();
 	_done = true;
@@ -439,23 +438,28 @@ void	Request::defaultErrorPage(std::string errorCode) {
 	_responseBody += "<html>\n";
 }
 
-void	Request::handleError() {
+bool	Request::handleError() {
 	std::string	errCodeStr = _status.substr(0, 3);
-	int			errCode = std::atoi(errCodeStr.c_str());
 
-	if ( _config.getErrorPage(errCode)!= "" && !(_config.getErrorPage(errCode)).empty()) {
-		std::string	errorFileName = _servDrive + "/var/www/error/" + _config.getErrorPage(errCode);
-		std::ifstream file(errorFileName);
-		if (file.is_open()) {
-			std::string	line;
-			while (std::getline(file, line))
-				_responseBody += line;
-			file.close();
+	if (errCodeStr[0] != '3' && errCodeStr[0] != '4' && errCodeStr[0] != '5')
+		return false;
+	else {
+		int	errCode = std::atoi(errCodeStr.c_str());
+		if ( _config.getErrorPage(errCode)!= "" && !(_config.getErrorPage(errCode)).empty()) {
+			std::string	errorFileName = _servDrive + "/var/www/error/" + _config.getErrorPage(errCode);
+			std::ifstream file(errorFileName);
+			if (file.is_open()) {
+				std::string	line;
+				while (std::getline(file, line))
+					_responseBody += line;
+				file.close();
+			}
 		}
+		else
+			defaultErrorPage(errCodeStr);
+		_contentType = "text/html";
+		return true;
 	}
-	else
-		defaultErrorPage(errCodeStr);
-	_contentType = "text/html";
 }
 
 std::string Request::getPath() const { return _path; }

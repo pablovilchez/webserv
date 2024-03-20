@@ -20,7 +20,7 @@ class Request
 		void	handleGetMethod(std::string &fileToOpen);
 		void	handlePostMethod();
 		void	handleDeleteMethod(std::string &fileToDelete);
-		void	handleError();
+		bool	handleError();
 		void	defaultErrorPage(std::string errorCode);
 		std::string	extractPathFromUrl(std::string& url);
 		bool	validateRequest(const std::string& method);

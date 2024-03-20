@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "header.hpp"
 #include "Location.hpp"
 #include "Config.hpp"
 
