@@ -261,7 +261,7 @@ void WebServer::initService() {
 						std::string request_line;
 						getline(request, request_line);
 
-						std::cout << YELLOW_TEXT << "-----\nRequest:  " << request_line << "\n-----" << RESET_COLOR << std::endl;
+						std::cout << YELLOW_TEXT << "Request:  " << request_line << RESET_COLOR << std::endl;
 						if (continueServer(buffer)) {
 						
 							Server server = getServerConfig(buffer);

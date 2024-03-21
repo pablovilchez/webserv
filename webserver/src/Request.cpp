@@ -171,7 +171,7 @@ void	Request::buildResponse() {
 	buildHeader();
 	setResponse();
 	_done = true;
-	std::cout << CYAN_TEXT << "-----\nResponse header:  " << _responseHeader << "\n-----" << RESET_COLOR << std::endl;
+	std::cout << CYAN_TEXT << "Response header:  " << _responseHeader << RESET_COLOR << std::endl;
 	//std::cout << "Response content: " << _responseBody << std::endl;
 	//std::cout << std::endl;
 }
