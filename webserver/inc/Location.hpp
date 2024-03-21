@@ -12,7 +12,6 @@ class Location
 		Location& operator=(const Location &other);
 		~Location();
 
-		void defaultConfig();
 		void parseConfig(const std::string &config);
 		void printData() const;
 

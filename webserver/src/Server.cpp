@@ -64,12 +64,10 @@ void Server::parseServer(const std::string &serverConfig) {
 		std::istringstream lineStream(line);
 		lineStream >> key;
 		if (key == "server_name") {
-			if (lineStream >> value) {
+			if (lineStream >> value)
 				_serverName = value;
-			}
-			else {
+			else
 				_serverName = "";
-			}
 		}
 		else if (key == "listen") {
 			while (lineStream >> value) {
