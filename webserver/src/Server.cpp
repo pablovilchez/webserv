@@ -4,7 +4,7 @@ class Location;
 
 Server::Server() : _maxSize(0) {
 	_port.insert(8080);
-	_serverName = "nuevo_" + std::to_string(0);
+	_serverName = "nuevo_0";
 	_errorPages.insert(std::make_pair(400, "var/www/error/400.html"));
 	_maxSize = 1024 * 10;
 	Location newLocation;

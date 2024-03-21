@@ -119,7 +119,7 @@ const Server &WebServer::getServerConfig(char *buffer) {
 	std::map<int, std::vector<Server> >::const_iterator itMap;
 	std::map<int, std::vector<Server> >::const_iterator endMap = _portsMap.end();
 	for (itMap = _portsMap.begin(); itMap != endMap; itMap++) {
-		if (itMap->first == std::stoi(port)) {
+		if (itMap->first == std::atoi(port.c_str())) {
 			std::vector<Server>::const_iterator itServ;
 			std::vector<Server>::const_iterator end = itMap->second.end();
 			for (itServ = itMap->second.begin(); itServ != end; itServ++) {
@@ -140,7 +140,7 @@ bool WebServer::correctConfig() const {
 bool WebServer::continueServer(char *buffer) {
 	std::istringstream bufferStream(buffer);
 	std::string line;
-	
+
 	std::getline(bufferStream, line);
 	if (line.find("shutdown") != std::string::npos)
 		_running = false;
@@ -263,7 +263,7 @@ void WebServer::initService() {
 
 						std::cout << YELLOW_TEXT << "Request:  " << request_line << RESET_COLOR << std::endl;
 						if (continueServer(buffer)) {
-						
+
 							Server server = getServerConfig(buffer);
 
 							Request newRequest(buffer, server);

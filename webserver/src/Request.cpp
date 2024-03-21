@@ -65,7 +65,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	if (receivedData.find(_boundary + "--") != std::string::npos) {
 		if (fileExtension(_contentType) == true) {
 			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
-			std::ofstream outputFile(saveFileIn, std::ios::binary);
+			std::ofstream outputFile(saveFileIn.c_str(), std::ios::binary);
 			if (outputFile.is_open()) {
 				outputFile.write(_body.data(), _body.size());
 				outputFile.close();
@@ -250,7 +250,11 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			const std::set<std::string>&	indexFiles = _location.getIndex();
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
-				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
+				/*
+					error: ‘std::string’ {aka ‘class std::__cxx11::basic_string<char>’} has no member named ‘back’ 253
+					fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
+				*/
+				fileToOpen += (*fileToOpen.end() != '/') ? '/' + currIndexFile : currIndexFile;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
 					buildResponse();
 					break ;
@@ -293,7 +297,7 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 
 	strcpy(resolvedPath, fileToDelete.c_str());
 
-	if (realpath(fileToDelete.c_str(), resolvedPath) == nullptr) {
+	if (realpath(fileToDelete.c_str(), resolvedPath) == NULL) {
 		setStatus("404 Not Found");
 		return;
 	}
@@ -446,7 +450,7 @@ bool	Request::handleError() {
 		int	errCode = std::atoi(errCodeStr.c_str());
 		if ( _config.getErrorPage(errCode)!= "" && !(_config.getErrorPage(errCode)).empty()) {
 			std::string	errorFileName = _servDrive + "/var/www/error/" + _config.getErrorPage(errCode);
-			std::ifstream file(errorFileName);
+			std::ifstream file(errorFileName.c_str());
 			if (file.is_open()) {
 				std::string	line;
 				while (std::getline(file, line))
