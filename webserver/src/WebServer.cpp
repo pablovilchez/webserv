@@ -53,14 +53,14 @@ int createNewListener(int port , std::vector<Server> servers) {
 	}
 
 	std::vector<Server> ::const_iterator it_serv;
-	std::cout << "Listening on port: " << port <<" [Servers: ";
+	std::cout << BLUE_TEXT << "Listening on port: " << port <<" [Servers: ";
 	for (it_serv = servers.begin(); it_serv != servers.end(); it_serv++) {
 		std::cout << (*it_serv).getServerName();
 		if (it_serv + 1 != servers.end()) {
 			std::cout << ", ";
 		}
 	}
-	std::cout << "]" << std::endl;
+	std::cout << "]" << RESET_COLOR << std::endl;
 
 	return listening;
 }
@@ -232,7 +232,7 @@ void WebServer::initService() {
 						}
 						if (_poll_fds.size()-1 < MAXCLIENTS) {
 							insertNewPollfd(_poll_fds, client_sock);
-							std::cout << "New client connected: " << client_sock << std::endl;
+							std::cout << GREEN_TEXT << "New client connected: " << client_sock << std::endl;
 						}
 						else {
 							std::cout << "Server is full" << std::endl;
@@ -246,7 +246,7 @@ void WebServer::initService() {
 					int bytes = recv(it->fd, buffer, 1024, 0);
 					if (bytes <= 0) {
 						if (bytes == 0) {
-							std::cout << "Client disconnected: " << it->fd << std::endl;
+							std::cout << RED_TEXT << "Client disconnected: " << it->fd << RESET_COLOR << std::endl;
 						}
 						else {
 							perror("Unable to read from socket");
@@ -261,6 +261,7 @@ void WebServer::initService() {
 						std::string request_line;
 						getline(request, request_line);
 
+						std::cout << YELLOW_TEXT << "-----\nRequest:  " << request_line << "\n-----" << RESET_COLOR << std::endl;
 						if (continueServer(buffer)) {
 						
 							Server server = getServerConfig(buffer);
@@ -274,7 +275,7 @@ void WebServer::initService() {
 			}
 			else if (it->revents & POLLOUT) {
 				send(it->fd, response.c_str(), response.size(), 0);
-				std::cout << "Client disconnected: " << it->fd << std::endl;
+				std::cout << RED_TEXT << "Client disconnected: " << it->fd << RESET_COLOR << std::endl;
 				close(it->fd);
 				_poll_fds.erase(it);
 				memset(buffer, 0, 1024);

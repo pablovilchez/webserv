@@ -5,6 +5,13 @@
 #  define DEBUG false
 # endif
 
+#define RED_TEXT "\033[1;31m"
+#define GREEN_TEXT "\033[1;32m"
+#define YELLOW_TEXT "\033[1;33m"
+#define CYAN_TEXT "\033[1;36m"
+#define BLUE_TEXT "\033[1;34m"
+#define RESET_COLOR "\033[0m"
+
 #include <iostream>
 #include <string>
 #include <fstream>

@@ -103,9 +103,6 @@ void Location::parseConfig(const std::string &config) {
 		else if(key == "}") {
 			break;
 		}
-		else {
-			std::cerr << "Error: Unknown key: " << key << std::endl;
-		}
 	}
 }
 

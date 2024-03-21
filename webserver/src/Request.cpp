@@ -19,7 +19,6 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
 	handleRequest();
-    _config.printData();
 }
 
 Request::~Request() { }
@@ -172,9 +171,9 @@ void	Request::buildResponse() {
 	buildHeader();
 	setResponse();
 	_done = true;
-	std::cout << "Response header:  " << _responseHeader << std::endl;
-	std::cout << "Response content: " << _responseBody << std::endl;
-	std::cout << std::endl;
+	std::cout << CYAN_TEXT << "-----\nResponse header:  " << _responseHeader << "\n-----" << RESET_COLOR << std::endl;
+	//std::cout << "Response content: " << _responseBody << std::endl;
+	//std::cout << std::endl;
 }
 
 bool	Request::validateRequest(const std::string& method) {
