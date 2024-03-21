@@ -137,6 +137,17 @@ bool WebServer::correctConfig() const {
 	return _correctConfig;
 }
 
+bool WebServer::continueServer(char *buffer) {
+	std::istringstream bufferStream(buffer);
+	std::string line;
+	
+	std::getline(bufferStream, line);
+	if (line.find("shutdown") != std::string::npos)
+		_running = false;
+	return _running;
+}
+
+
 /*______________________________UTILS-FUNCTIONS-END______________________________*/
 
 
@@ -193,9 +204,10 @@ bool WebServer::parseConfigFile(const std::string &file) {
 
 void WebServer::initService() {
 	::initListeners(_portsMap, _poll_fds, _listeners);
+	_running = true;
 
 	std::string response;
-	while (1) {
+	while (_running) {
 		int ret = poll(reinterpret_cast<pollfd *>(&_poll_fds[0]), static_cast<unsigned int>(_poll_fds.size()), -1);
 		if (ret == -1) {
 			perror("poll failed");
@@ -249,11 +261,14 @@ void WebServer::initService() {
 						std::string request_line;
 						getline(request, request_line);
 
-						Server server = getServerConfig(buffer);
+						if (continueServer(buffer)) {
+						
+							Server server = getServerConfig(buffer);
 
-						Request newRequest(buffer, server);
-						response = newRequest.getResponse();
-						it->events = POLLOUT;
+							Request newRequest(buffer, server);
+							response = newRequest.getResponse();
+							it->events = POLLOUT;
+						}
 					}
 				}
 			}
@@ -281,6 +296,7 @@ void WebServer::initService() {
 			}
 		}
 	}
+	std::cout << "Server shutting down" << std::endl;
 }
 
 /*______________________________CLASS-METHODS-END______________________________*/

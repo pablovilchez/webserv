@@ -21,6 +21,7 @@ class WebServer {
 		void initService();
 		const Server &getServerConfig(char *buffer);
 		bool correctConfig() const;
+		bool continueServer(char *buffer);
 
 	private:
 		std::vector<Server>	                _servers;
@@ -28,6 +29,7 @@ class WebServer {
 		std::vector<int>			        _listeners;
 		std::map<int, std::vector<Server> > _portsMap;
         bool                                _correctConfig;
+		bool 								_running;
 };
 
 #endif
