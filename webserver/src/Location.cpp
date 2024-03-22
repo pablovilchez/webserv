@@ -12,7 +12,7 @@ Location::Location(const Location &other) {
 	_return = other._return;
 }
 
-Location::Location(const std::string &config) : _directoryListing(false) {
+Location::Location(const std::string &config) : _location("null"), _directoryListing(false) {
 	parseConfig(config);
 }
 
@@ -58,7 +58,7 @@ void Location::parseConfig(const std::string &config) {
 			if (lineStream >> value)
 				_location = value;
 			else
-				_location = "";
+				_location = "null";
 		}
 		else if (key == "root") {
 			if (lineStream >> value)

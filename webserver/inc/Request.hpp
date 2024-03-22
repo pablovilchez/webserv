@@ -36,6 +36,7 @@ class Request
 		std::string getRaw() const;
 		std::string getResponseHeader() const;
 		std::string getResponseBody() const;
+		bool		isResponseReady() const;
 		void	setResponse();
 		std::string	getResponse() const;
 		void	generateAutoIndex(std::string &uri);
@@ -70,6 +71,7 @@ class Request
 		bool		_done;
 		std::string	fileToOpen;
 		std::string	_servDrive;
+		std::string	_errorLocation;
 		std::map<std::string, std::string> contentTypeExtensions;
 };
 

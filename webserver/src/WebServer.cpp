@@ -1,4 +1,5 @@
 #include "WebServer.hpp"
+#include "Request.hpp"
 
 /*______________________________UTILS-FUNCTIONS-START______________________________*/
 
@@ -53,14 +54,14 @@ int createNewListener(int port , std::vector<Server> servers) {
 	}
 
 	std::vector<Server> ::const_iterator it_serv;
-	std::cout << BLUE_TEXT << "Listening on port: " << port <<" [Servers: ";
+	std::cout << "Listening on port: " << port <<" [Servers: ";
 	for (it_serv = servers.begin(); it_serv != servers.end(); it_serv++) {
 		std::cout << (*it_serv).getServerName();
 		if (it_serv + 1 != servers.end()) {
 			std::cout << ", ";
 		}
 	}
-	std::cout << "]" << RESET_COLOR << std::endl;
+	std::cout << "]" << std::endl;
 
 	return listening;
 }
@@ -137,17 +138,6 @@ bool WebServer::correctConfig() const {
 	return _correctConfig;
 }
 
-bool WebServer::continueServer(char *buffer) {
-	std::istringstream bufferStream(buffer);
-	std::string line;
-	
-	std::getline(bufferStream, line);
-	if (line.find("shutdown") != std::string::npos)
-		_running = false;
-	return _running;
-}
-
-
 /*______________________________UTILS-FUNCTIONS-END______________________________*/
 
 
@@ -204,10 +194,10 @@ bool WebServer::parseConfigFile(const std::string &file) {
 
 void WebServer::initService() {
 	::initListeners(_portsMap, _poll_fds, _listeners);
-	_running = true;
 
+	std::map<int, Request> clientRequests;
 	std::string response;
-	while (_running) {
+	while (1) {
 		int ret = poll(reinterpret_cast<pollfd *>(&_poll_fds[0]), static_cast<unsigned int>(_poll_fds.size()), -1);
 		if (ret == -1) {
 			perror("poll failed");
@@ -232,7 +222,7 @@ void WebServer::initService() {
 						}
 						if (_poll_fds.size()-1 < MAXCLIENTS) {
 							insertNewPollfd(_poll_fds, client_sock);
-							std::cout << GREEN_TEXT << "New client connected: " << client_sock << std::endl;
+							std::cout << "New client connected: " << client_sock << std::endl;
 						}
 						else {
 							std::cout << "Server is full" << std::endl;
@@ -246,7 +236,7 @@ void WebServer::initService() {
 					int bytes = recv(it->fd, buffer, 1024, 0);
 					if (bytes <= 0) {
 						if (bytes == 0) {
-							std::cout << RED_TEXT << "Client disconnected: " << it->fd << RESET_COLOR << std::endl;
+							std::cout << "Client disconnected: " << it->fd << std::endl;
 						}
 						else {
 							perror("Unable to read from socket");
@@ -261,22 +251,33 @@ void WebServer::initService() {
 						std::string request_line;
 						getline(request, request_line);
 
-						std::cout << YELLOW_TEXT << "Request:  " << request_line << RESET_COLOR << std::endl;
-						if (continueServer(buffer)) {
-						
+						std::map<int, Request>::iterator it_req = clientRequests.find(it->fd);
+						if (it_req != clientRequests.end()) {
+							it_req->second.parseBody(buffer, bytes);
+						} else {
 							Server server = getServerConfig(buffer);
-
 							Request newRequest(buffer, server);
-							response = newRequest.getResponse();
-							it->events = POLLOUT;
+							clientRequests.insert(std::make_pair(it->fd, newRequest));
+						}
+						for (std::map<int, Request>::iterator it_req = clientRequests.begin(); it_req != clientRequests.end(); ++it_req) {
+							if (it_req->second.isResponseReady()) {
+								response = it_req->second.getResponse();
+								for (it = _poll_fds.begin(); it != end; it++) {
+									if (it->fd == it_req->first) {
+										it->events = POLLOUT;
+										break;
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 			else if (it->revents & POLLOUT) {
 				send(it->fd, response.c_str(), response.size(), 0);
-				std::cout << RED_TEXT << "Client disconnected: " << it->fd << RESET_COLOR << std::endl;
+				std::cout << "Client disconnected: " << it->fd << std::endl;
 				close(it->fd);
+				clientRequests.erase(it->fd);
 				_poll_fds.erase(it);
 				memset(buffer, 0, 1024);
 				response.clear();
@@ -297,7 +298,6 @@ void WebServer::initService() {
 			}
 		}
 	}
-	std::cout << "Server shutting down" << std::endl;
 }
 
 /*______________________________CLASS-METHODS-END______________________________*/

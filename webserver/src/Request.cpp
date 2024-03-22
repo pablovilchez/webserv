@@ -18,6 +18,8 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	fileToOpen = "";
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
+	_errorLocation = "/var/www/error/";
+			//std::cout << "_raw " << _raw << std::endl;
 	handleRequest();
 }
 
@@ -30,7 +32,6 @@ std::string Request::getRaw() const
 
 void	Request::captureFileName(std::string receivedData) {
 	size_t filenamePos = receivedData.find("filename=");
-
 	if (filenamePos != std::string::npos) {
 		size_t quoteStart = receivedData.find("\"", filenamePos);
 		size_t quoteEnd = receivedData.find("\"", quoteStart + 1);
@@ -41,7 +42,17 @@ void	Request::captureFileName(std::string receivedData) {
 				_fileName = receivedData.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
 		}
 	}
+/* 	size_t contTypePos = receivedData.find("Content-Type: ");
+	if (contTypePos != std::string::npos) {
+	size_t contTypeEndPos = receivedData.find("\r\n", contTypePos);
+		if (contTypeEndPos != std::string::npos) {
+			// Extract the content type value
+			std::string contentTypeLine = receivedData.substr(contTypePos, contTypeEndPos - contTypePos);
+		}
+	} */
 }
+
+
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
 	static int	i = 0;
@@ -49,10 +60,10 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	std::string receivedData(buf, bytesReceived);
 	size_t boundaryPos = receivedData.find(boundary);
 
-	if (_contentLength == 0) {
+/* 	if (_contentLength == 0) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
-	}
+	} */
 	if (_body.empty())
 		_body.reserve(_contentLength);
 	if (i == 0 && boundaryPos != std::string::npos) {
@@ -63,6 +74,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		_body.insert(_body.end(), buf, buf + bytesReceived);
 
 	if (receivedData.find(_boundary + "--") != std::string::npos) {
+		std::cout << "DONE" << std::endl;
 		if (fileExtension(_contentType) == true) {
 			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
 			std::ofstream outputFile(saveFileIn, std::ios::binary);
@@ -79,7 +91,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	}
 }
 
-void Request::parseHeader()
+void Request::parseHeader()	
 {
 	size_t	pos = 0;
 	size_t	end = _raw.find("\r\n");
@@ -127,25 +139,26 @@ void Request::parseHeader()
 		}
 		pos = end + 2;
 	}
-	size_t expectHeaderPos = _raw.find("Expect: 100-continue");
+/* 	size_t expectHeaderPos = _raw.find("Expect: 100-continue");
 	if (expectHeaderPos != std::string::npos) {
+
 		bool	readyToAcceptPayload = false;
 
 		if (readyToAcceptPayload)
 			_responseHeader = "HTTP/1.1 100 Continue\r\n\r\n";
 		else
-			_responseHeader = "HTTP/1.1 400 Bad Request\r\n\r\n";
+			_responseHeader = "HTTP/1.1 417 Expectation Failed\r\n\r\n";
 		setResponse();
-		_done = true;
-	}
+		//_done = true;
+	} */
 }
 
 void	Request::buildHeader() {
 	std::stringstream	contLenStr;
 	contLenStr << _contentLength;
 	_responseHeader = "HTTP/1.1 " + _status + "\n";
-	if (_redirectionLocation != "")
-		_responseHeader += "Location: " + _redirectionLocation + "\n";
+/* 	if (_redirectionLocation != "")
+		_responseHeader += "Location: " + _redirectionLocation + "\n"; */
 	_responseHeader += "Content-Type: " + _contentType + "\n\n";
 	//_responseHeader += "Content-Length: " + contLenStr.str() + "\n\n";
 }
@@ -186,7 +199,6 @@ bool	Request::validateRequest(const std::string& method) {
 		requestedLocation = _path;
 	_location = _config.getLocation(requestedLocation);
 	if (_location.getLocation() == "null") {
-		std::cout << "HERE " << std::endl;
 		setStatus("404 Not Found");
 		return false;
 	}
@@ -241,7 +253,7 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 		if (!_location.getReturn().empty()) {
 			std::map<int, std::string>	redirections = _location.getReturn();
 			if (redirections.find(301) != redirections.end()) {
-				std::string	redirectionLocation = redirections[301];
+				_redirectionLocation = redirections[301];
 				setStatus("301 Moved Permanently");
 			}
 			buildResponse();
@@ -265,7 +277,6 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			setStatus("404 Not Found");
 	}
 	else { // path is a file
-
 		if (fileType(_extension)) {
 			// if (!_location.getCgiExtension().empty())
 				// Handle CGI processing
@@ -283,6 +294,12 @@ void	Request::handlePostMethod(){
 		setStatus("403 Forbiden");
 	else if (_config.getMaxSize() < _contentLength)
 		setStatus("413 Request Entity Too Large");
+	else { // handle basic file
+		std::cout << "fileToOpen " << fileToOpen << std::endl;
+	}
+/* 	else {
+		parseBodyFile(cons)
+	} */
 /* 	else
 		handleCgi(); */
 }
@@ -334,8 +351,8 @@ void	Request::handleRequest() {
 		else
 			setStatus("405 Method Not Allowed");
 	}
-	if (!_done)
-		buildResponse();
+/* 	if (!_done)
+		buildResponse(); */
 }
 
 void Request::printData()
@@ -351,6 +368,7 @@ void Request::printData()
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
 	//std::cout << "in filext: FILE'S type: " << contentType << std::endl;
+	contentTypeExtensions.insert(std::make_pair("image/vnd.microsoft.icon", ".ico"));
 	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
 	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
 	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
@@ -374,6 +392,7 @@ bool	Request::fileExtension(const std::string& contentType) {
 
 bool	Request::fileType(const std::string& extension) {
 	std::map<std::string, std::string> extensionToContentType;
+	extensionToContentType.insert(std::make_pair(".ico", "image/vnd.microsoft.icon"));
 	extensionToContentType.insert(std::make_pair(".jpeg", "image/jpeg"));
 	extensionToContentType.insert(std::make_pair(".jpg", "image/jpeg"));
 	extensionToContentType.insert(std::make_pair(".png", "image/png"));
@@ -443,16 +462,18 @@ bool	Request::handleError() {
 	if (errCodeStr[0] != '3' && errCodeStr[0] != '4' && errCodeStr[0] != '5')
 		return false;
 	else {
+		std::string	errorFileName;
 		int	errCode = std::atoi(errCodeStr.c_str());
-		if ( _config.getErrorPage(errCode)!= "" && !(_config.getErrorPage(errCode)).empty()) {
-			std::string	errorFileName = _servDrive + "/var/www/error/" + _config.getErrorPage(errCode);
-			std::ifstream file(errorFileName);
-			if (file.is_open()) {
-				std::string	line;
-				while (std::getline(file, line))
-					_responseBody += line;
-				file.close();
-			}
+		if (_redirectionLocation != "")
+			errorFileName = _servDrive + _errorLocation + _redirectionLocation;
+		else if (_config.getErrorPage(errCode) != "" && !(_config.getErrorPage(errCode)).empty())
+			errorFileName = _servDrive + _errorLocation + _config.getErrorPage(errCode);
+		std::ifstream file(errorFileName);
+		if (file.is_open()) {
+			std::string	line;
+			while (std::getline(file, line))
+				_responseBody += line;
+			file.close();
 		}
 		else
 			defaultErrorPage(errCodeStr);
@@ -476,3 +497,5 @@ std::string Request::getExtension() const {	return _extension; }
 void	Request::setResponse() { _response = _responseHeader + _responseBody; }
 
 std::string	Request::getResponse() const { return _response; }
+
+bool	Request::isResponseReady() const { return _done; }
