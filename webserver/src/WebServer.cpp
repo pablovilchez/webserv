@@ -250,11 +250,13 @@ void WebServer::initService() {
 						std::istringstream request(buffer);
 						std::string request_line;
 						getline(request, request_line);
-
+						//std::cout << "RECEVIED DATA: " << buffer<< std::endl;
 						std::map<int, Request>::iterator it_req = clientRequests.find(it->fd);
 						if (it_req != clientRequests.end()) {
+							std::cout << "EXISTING CLIENT: " << buffer<< std::endl;
 							it_req->second.parseBody(buffer, bytes);
 						} else {
+							std::cout << "NEW CLIENT: " << buffer<< std::endl;
 							Server server = getServerConfig(buffer);
 							Request newRequest(buffer, server);
 							clientRequests.insert(std::make_pair(it->fd, newRequest));

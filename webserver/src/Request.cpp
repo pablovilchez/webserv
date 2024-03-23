@@ -42,14 +42,13 @@ void	Request::captureFileName(std::string receivedData) {
 				_fileName = receivedData.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
 		}
 	}
-/* 	size_t contTypePos = receivedData.find("Content-Type: ");
+	size_t contTypePos = receivedData.find("Content-Type: ");
 	if (contTypePos != std::string::npos) {
-	size_t contTypeEndPos = receivedData.find("\r\n", contTypePos);
+		size_t contTypeEndPos = receivedData.find("\r\n", contTypePos);
 		if (contTypeEndPos != std::string::npos) {
-			// Extract the content type value
-			std::string contentTypeLine = receivedData.substr(contTypePos, contTypeEndPos - contTypePos);
+			_contentType = receivedData.substr(contTypePos + 14, contTypeEndPos - contTypePos - 14);
 		}
-	} */
+	}
 }
 
 
@@ -72,9 +71,9 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		i = 1;
 	} else
 		_body.insert(_body.end(), buf, buf + bytesReceived);
-
-	if (receivedData.find(_boundary + "--") != std::string::npos) {
-		std::cout << "DONE" << std::endl;
+	std::string bodyString(_body.begin(), _body.end());
+	size_t	endPos = bodyString.find(_boundary + "--");
+	if (endPos != std::string::npos) {
 		if (fileExtension(_contentType) == true) {
 			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
 			std::ofstream outputFile(saveFileIn, std::ios::binary);
@@ -85,7 +84,8 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 			} else
 				std::cerr << "Error opening file for writing." << std::endl;
 		}
-		//_body.clear();
+		_body.clear();
+		i = 0;
 		//_done = true;
 		buildResponse();
 	}
@@ -95,6 +95,7 @@ void Request::parseHeader()
 {
 	size_t	pos = 0;
 	size_t	end = _raw.find("\r\n");
+	//int	contentTypeCount = 0;
 
 	if (end != std::string::npos) {
 		std::string	line = _raw.substr(pos, end - pos);
@@ -126,6 +127,7 @@ void Request::parseHeader()
 			else if (key == "Content-Length")
 				_contentLength = atoi(value.c_str());
 			else if (key == "Content-Type") {
+				//contentTypeCount++;
 				size_t semicolPos = value.find(';');
 				if (semicolPos != std::string::npos)
 					_contentType = value.substr(0, semicolPos);
@@ -297,9 +299,7 @@ void	Request::handlePostMethod(){
 	else { // handle basic file
 		std::cout << "fileToOpen " << fileToOpen << std::endl;
 	}
-/* 	else {
-		parseBodyFile(cons)
-	} */
+
 /* 	else
 		handleCgi(); */
 }
@@ -367,7 +367,6 @@ void Request::printData()
 
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
-	//std::cout << "in filext: FILE'S type: " << contentType << std::endl;
 	contentTypeExtensions.insert(std::make_pair("image/vnd.microsoft.icon", ".ico"));
 	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
 	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
