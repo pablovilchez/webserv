@@ -21,7 +21,7 @@ class Request
 		void	handlePostMethod();
 		void	handleDeleteMethod(std::string &fileToDelete);
 		bool	handleError();
-		void	defaultErrorPage(std::string errorCode);
+		static std::string defaultErrorPage(std::string errorCode, std::string errorDescription);
 		std::string	extractPathFromUrl(std::string& url);
 		bool	validateRequest(const std::string& method);
 		void	parseHeader();

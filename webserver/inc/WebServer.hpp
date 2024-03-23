@@ -19,17 +19,23 @@ class WebServer {
 
 		bool parseConfigFile(const std::string &file);
 		void initService();
+		void createNewClient(int it_listen);
 		const Server &getServerConfig(char *buffer);
 		bool correctConfig() const;
 		bool continueServer(char *buffer);
+
+		void checkServes();
+		void checkClients();
 
 	private:
 		std::vector<Server>	                _servers;
 		std::vector<pollfd>			        _poll_fds;
 		std::vector<int>			        _listeners;
+		std::vector<int>			        _clients;
 		std::map<int, std::vector<Server> > _portsMap;
         bool                                _correctConfig;
 		bool 								_running;
+		std::string 						_response;
 };
 
 #endif

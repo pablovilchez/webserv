@@ -147,6 +147,8 @@ void	Request::buildHeader() {
 	if (_redirectionLocation != "")
 		_responseHeader += "Location: " + _redirectionLocation + "\n";
 	_responseHeader += "Content-Type: " + _contentType + "\n\n";
+	//_responseHeader += "Connection: Keep-Alive\n";
+	//_responseHeader += "Keep-Alive: timeout=5, max=1000\n\n";
 	//_responseHeader += "Content-Length: " + contLenStr.str() + "\n\n";
 }
 
@@ -430,15 +432,54 @@ void	Request::setExtension(const std::string &path) {
 	}
 }
 
-void	Request::defaultErrorPage(std::string errorCode) {
-	_responseBody += "<html>\n";
-	_responseBody += "<head>\n";
-	_responseBody += "<title>Error " + errorCode + "</title>\n";
-	_responseBody += "</head>\n";
-	_responseBody += "<body>\n";
-	_responseBody += "<h1>Error " + errorCode +"</h1>\n";
-	_responseBody += "<body>\n";
-	_responseBody += "<html>\n";
+std::string Request::defaultErrorPage(std::string errorCode, std::string errorDescription) {
+std::string page_html = "<!DOCTYPE html>"
+                        "<html lang=\"en\">"
+                        "<head>"
+                        "    <meta charset=\"UTF-8\">"
+                        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                        "    <title>Error " + errorCode + "</title>"
+                        "    <style>"
+                        "        body {"
+                        "            font-family: Arial, sans-serif;"
+                        "            height: 100vh;"
+						"            position: relative;"
+                        "            background-color: #f4f4f4;"
+                        "            margin: 0;"
+                        "            padding: 0;"
+                        "        }"
+                        "        .container {"
+                        "            position: absolute;"
+                        "            top: 50%;"
+                        "            left: 50%;"
+                        "            max-width: 800px;"
+                        "            margin: 0 auto;"
+                        "            padding: 40px 20px;"
+                        "            transform: translate(-50%, -50%);"
+                        "        }"
+                        "        h1 {"
+                        "            color: #333;"
+                        "        }"
+                        "        h2 {"
+                        "            color: #777;"
+                        "        }"
+                        "        .error-code {"
+                        "            font-size: 48px;"
+                        "            color: #ff5555;"
+                        "        }"
+                        "        .error-description {"
+                        "            font-size: 24px;"
+                        "        }"
+                        "    </style>"
+                        "</head>"
+                        "<body>"
+                        "    <div class=\"container\">"
+                        "        <h1>Error <span class=\"error-code\">" + errorCode + "</span></h1>"
+                        "        <h2 class=\"error-description\">" + errorDescription + "</h2>"
+                        "    </div>"
+                        "</body>"
+                        "</html>";
+	return page_html;
 }
 
 bool	Request::handleError() {
@@ -458,8 +499,9 @@ bool	Request::handleError() {
 				file.close();
 			}
 		}
-		else
-			defaultErrorPage(errCodeStr);
+		else {
+			_responseBody += defaultErrorPage(errCodeStr, "Page Not Found");
+		}
 		_contentType = "text/html";
 		return true;
 	}

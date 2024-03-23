@@ -5,6 +5,7 @@ WebServer::WebServer() {
 }
 
 WebServer::WebServer(const std::string &file) : _correctConfig(false) {
+	_running = true;
 	_correctConfig = parseConfigFile(file);
 }
 
