@@ -142,14 +142,14 @@ void Request::parseHeader()
 
 void	Request::buildHeader() {
 	std::stringstream	contLenStr;
-	contLenStr << _contentLength;
-	_responseHeader = "HTTP/1.1 " + _status + "\n";
+	contLenStr << _responseBody.size();
+	_responseHeader = "HTTP/1.1 " + _status + "\r\n";
 	if (_redirectionLocation != "")
-		_responseHeader += "Location: " + _redirectionLocation + "\n";
-	_responseHeader += "Content-Type: " + _contentType + "\n\n";
-	//_responseHeader += "Connection: Keep-Alive\n";
-	//_responseHeader += "Keep-Alive: timeout=5, max=1000\n\n";
-	//_responseHeader += "Content-Length: " + contLenStr.str() + "\n\n";
+		_responseHeader += "Location: " + _redirectionLocation + "\r\n";
+	_responseHeader += "Content-Type: " + _contentType + "\r\n";
+	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
+	_responseHeader += "Connection: Keep-Alive\r\n";
+	_responseHeader += "Keep-Alive: timeout=5, max=1000\r\n\r\n";
 }
 
 void	Request::buildResponse() {
@@ -173,7 +173,7 @@ void	Request::buildResponse() {
 	buildHeader();
 	setResponse();
 	_done = true;
-	std::cout << CYAN_TEXT << "Response header:  " << _responseHeader << RESET_COLOR << std::endl;
+                      
 	//std::cout << "Response content: " << _responseBody << std::endl;
 	//std::cout << std::endl;
 }
