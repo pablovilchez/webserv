@@ -1,7 +1,7 @@
 
-NAME = webserver
+NAME = webserv
 
-CC = c++ #-fsanitize=address
+CC = clang++ #-fsanitize=address
 FLAGS = -Wall -Wextra -Werror -std=c++98
 REMOVE = rm -rf
 
