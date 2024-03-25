@@ -30,8 +30,9 @@ class WebServer {
 	private:
 		std::vector<Server>	                _servers;
 		std::vector<pollfd>			        _poll_fds;
+		size_t 								_pollSize;
 		std::vector<int>			        _listeners;
-		std::vector<int>			        _clients;
+		size_t							    _listSize;
 		std::map<int, std::vector<Server> > _portsMap;
         bool                                _correctConfig;
 		bool 								_running;
