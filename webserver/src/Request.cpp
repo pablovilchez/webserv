@@ -19,7 +19,6 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
 	_errorLocation = "/var/www/error/";
-			//std::cout << "_raw " << _raw << std::endl;
 	handleRequest();
 }
 
@@ -30,7 +29,7 @@ std::string Request::getRaw() const
 	return _raw;
 }
 
-void	Request::captureFileName(std::string receivedData) {
+bool	Request::captureFileName(std::string receivedData) {
 	size_t filenamePos = receivedData.find("filename=");
 	if (filenamePos != std::string::npos) {
 		size_t quoteStart = receivedData.find("\"", filenamePos);
@@ -41,44 +40,49 @@ void	Request::captureFileName(std::string receivedData) {
 			else
 				_fileName = receivedData.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
 		}
-	}
-	size_t contTypePos = receivedData.find("Content-Type: ");
-	if (contTypePos != std::string::npos) {
-		size_t contTypeEndPos = receivedData.find("\r\n", contTypePos);
-		if (contTypeEndPos != std::string::npos) {
-			_contentType = receivedData.substr(contTypePos + 14, contTypeEndPos - contTypePos - 14);
+		size_t contTypePos = receivedData.find("Content-Type: ", filenamePos);
+		if (contTypePos != std::string::npos) {
+			size_t contTypeEndPos = receivedData.find("\r\n", contTypePos);
+			if (contTypeEndPos != std::string::npos) {
+				_contentType = receivedData.substr(contTypePos + 14, contTypeEndPos - contTypePos - 14);
+					std::cout << " OOOOOOOO: " << _contentType << "|" << std::endl;
+			}
 		}
+		return true;
 	}
+	return false;
 }
-
-
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
 	static int	i = 0;
+	std::cout << "bytesReceived" << bytesReceived << std::endl;
+
 	std::string boundary = "\r\n\r\n";
 	std::string receivedData(buf, bytesReceived);
-	size_t boundaryPos = receivedData.find(boundary);
-
+	size_t	boundaryPos = receivedData.find(boundary);
+	//size_t	bodyStart = receivedData.find(boundary + _boundry);
 /* 	if (_contentLength == 0) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
 	} */
+	//captureFileName(receivedData);
 	if (_body.empty())
 		_body.reserve(_contentLength);
-	if (i == 0 && boundaryPos != std::string::npos) {
-		captureFileName(receivedData);
+	if (i == 0 && boundaryPos != std::string::npos && captureFileName(receivedData)) {
 		_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
 		i = 1;
-	} else
+	} else if (i == 1)
 		_body.insert(_body.end(), buf, buf + bytesReceived);
 	std::string bodyString(_body.begin(), _body.end());
 	size_t	endPos = bodyString.find(_boundary + "--");
 	if (endPos != std::string::npos) {
+		std::cout << "receivedData " << receivedData << std::endl;
 		if (fileExtension(_contentType) == true) {
 			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
 			std::ofstream outputFile(saveFileIn, std::ios::binary);
 			if (outputFile.is_open()) {
-				outputFile.write(_body.data(), _body.size());
+				//size_t	endBoundaryPos = receivedData.find("\r\n\r\n");
+				outputFile.write(_body.data(), endPos - 4);
 				outputFile.close();
 				setStatus("200 OK");
 			} else
@@ -95,7 +99,6 @@ void Request::parseHeader()
 {
 	size_t	pos = 0;
 	size_t	end = _raw.find("\r\n");
-	//int	contentTypeCount = 0;
 
 	if (end != std::string::npos) {
 		std::string	line = _raw.substr(pos, end - pos);
@@ -109,13 +112,19 @@ void Request::parseHeader()
 		}
 		pos = end + 2;
 	}
-	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1")
+	if (_method != "GET" && _method != "POST" && _method != "DELETE" && _version != "HTTP/1.1") {
+		_done = true;
 		return (setStatus("400 Bad Request"));
-	if (!validateRequest(_method))
+	}
+	if (!validateRequest(_method)) {
+		_done = true;
 		return;
+	}
 	fileToOpen = extractPathFromUrl(_path);
-	if (access(fileToOpen.c_str(), F_OK) == -1)
+	if (access(fileToOpen.c_str(), F_OK) == -1) {
+		_done = true;
 		return (setStatus("404 Not Found"));
+	}
 	while ((end = _raw.find("\r\n", pos)) != std::string::npos && pos < _raw.size()) {
 		std::string	line = _raw.substr(pos, end - pos);
 		size_t	colPos = line.find(':');
@@ -127,7 +136,6 @@ void Request::parseHeader()
 			else if (key == "Content-Length")
 				_contentLength = atoi(value.c_str());
 			else if (key == "Content-Type") {
-				//contentTypeCount++;
 				size_t semicolPos = value.find(';');
 				if (semicolPos != std::string::npos)
 					_contentType = value.substr(0, semicolPos);
@@ -178,17 +186,13 @@ void	Request::buildResponse() {
 				setExtension(fileToOpen);
 			}
 		}
-		else if (_method == "POST")
+		else if (_method == "POST" || _method == "DELETE")
 			_responseBody = "Request served";
-		else if (_method == "DELETE")
-			_contentType = "text/plain";
 	}
 	buildHeader();
 	setResponse();
 	_done = true;
 	std::cout << CYAN_TEXT << "Response header:  " << _responseHeader << RESET_COLOR << std::endl;
-	//std::cout << "Response content: " << _responseBody << std::endl;
-	//std::cout << std::endl;
 }
 
 bool	Request::validateRequest(const std::string& method) {
@@ -226,7 +230,7 @@ void	Request::generateAutoIndex(std::string &uri) {
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
 		if (currDir->d_type == DT_REG && std::string(currDir->d_name).find(".html") != std::string::npos) {
-			std::string	filePath = uri + "/" + std::string(currDir->d_name);
+			std::string	filePath = uri + std::string(currDir->d_name);
 			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
 		}
 	}
@@ -258,7 +262,6 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 				_redirectionLocation = redirections[301];
 				setStatus("301 Moved Permanently");
 			}
-			buildResponse();
 		}
 		else if (!_location.getIndex().empty()) {
 			const std::set<std::string>&	indexFiles = _location.getIndex();
@@ -266,29 +269,28 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 				const std::string&	currIndexFile = *it;
 				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
-					buildResponse();
 					break ;
 				}
 			}
 		}
 		else if (_location.getDirectoryListing()) {
 			generateAutoIndex(fileToOpen);
-			buildResponse();
 		}
 		else
 			setStatus("404 Not Found");
+		_done = true;
+
 	}
 	else { // path is a file
 		if (fileType(_extension)) {
 			// if (!_location.getCgiExtension().empty())
 				// Handle CGI processing
 			setStatus("200 OK");
-			buildResponse();
 /* 			else
 				setStatus("500 Internal Server Error"); // Unable to open file */
 		}
-	}
 	_done = true;
+	}
 }
 
 void	Request::handlePostMethod(){
@@ -297,9 +299,9 @@ void	Request::handlePostMethod(){
 	else if (_config.getMaxSize() < _contentLength)
 		setStatus("413 Request Entity Too Large");
 	else { // handle basic file
-		std::cout << "fileToOpen " << fileToOpen << std::endl;
+		const char *buf = _raw.c_str();
+		parseBody(buf, _raw.size());
 	}
-
 /* 	else
 		handleCgi(); */
 }
@@ -322,6 +324,8 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 		setStatus("204 No Content");
 	else
 		setStatus("500 Internal Server Error");
+	_contentType = "text/plain";
+	_done = true;
 }
 
 // por ahora falta "." ".." comprobaciones
@@ -341,6 +345,7 @@ std::string	Request::extractPathFromUrl(std::string& url) {
 
 void	Request::handleRequest() {
 	parseHeader();
+	std::cout << "status" << _status << std::endl;
 	if (_status == "" && !_done) {
 		if (_method == "GET")
 			handleGetMethod(fileToOpen);
@@ -351,9 +356,9 @@ void	Request::handleRequest() {
 		else
 			setStatus("405 Method Not Allowed");
 	}
-/* 	if (!_done)
-		buildResponse(); */
-}
+	if (_status != "" && _done == true)
+		buildResponse();
+} 
 
 void Request::printData()
 {
@@ -367,13 +372,14 @@ void Request::printData()
 
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
-	contentTypeExtensions.insert(std::make_pair("image/vnd.microsoft.icon", ".ico"));
+	contentTypeExtensions.insert(std::make_pair("image/icon", ".ico"));
 	contentTypeExtensions.insert(std::make_pair("image/jpeg", ".jpeg"));
 	contentTypeExtensions.insert(std::make_pair("image/jpg", ".jpg"));
 	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
 	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
 	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
 	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
+	contentTypeExtensions.insert(std::make_pair("text/css", ".css"));
 	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
 	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
 	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
@@ -391,7 +397,8 @@ bool	Request::fileExtension(const std::string& contentType) {
 
 bool	Request::fileType(const std::string& extension) {
 	std::map<std::string, std::string> extensionToContentType;
-	extensionToContentType.insert(std::make_pair(".ico", "image/vnd.microsoft.icon"));
+	extensionToContentType.insert(std::make_pair(".css", "text/css"));
+	extensionToContentType.insert(std::make_pair(".ico", "image/x-icon"));
 	extensionToContentType.insert(std::make_pair(".jpeg", "image/jpeg"));
 	extensionToContentType.insert(std::make_pair(".jpg", "image/jpeg"));
 	extensionToContentType.insert(std::make_pair(".png", "image/png"));

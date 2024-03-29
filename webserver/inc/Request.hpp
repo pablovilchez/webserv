@@ -27,7 +27,7 @@ class Request
 		void	parseHeader();
 		void	parseBody(const char *buf, int bytesReceived);
 		void	printData();
-		void	captureFileName(std::string receivedData);
+		bool	captureFileName(std::string receivedData);
 		bool	fileExtension(const std::string& contentType);
 		bool	fileType(const std::string& extension);
 		void	setStatus(const std::string &status);

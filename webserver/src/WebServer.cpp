@@ -147,7 +147,7 @@ bool WebServer::parseConfigFile(const std::string &file) {
 	std::ifstream fileStream(file.c_str());
 	std::string line;
 	std::string buffer;
-	int servers = 0;
+	//int servers = 0;
 	int checkEnd = 0;
 
 	if (!fileStream.is_open()) {
@@ -185,7 +185,7 @@ bool WebServer::parseConfigFile(const std::string &file) {
 				fileStream.close();
                 return false;
             }
-			servers++;
+			//servers++;
 		}
 	}
 	fileStream.close();
