@@ -13,7 +13,9 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	_boundary = "";
 	_responseHeader = "";
 	_responseBody = "";
+	_response = "";
 	_done = false;
+	_isChunked = false;
 	_redirectionLocation = "";
 	fileToOpen = "";
 	char	buf[1024];
@@ -52,10 +54,37 @@ bool	Request::captureFileName(std::string receivedData) {
 	}
 	return false;
 }
+//utils
+std::vector<std::string>	cppSplit(const std::string &str, std::string delimiter) {
+	std::size_t pos = 0;
+	std::size_t last_pos = 0;
+	std::vector<std::string> split_str;
+
+	split_str.reserve(str.size() / delimiter.size() + 1);
+	while ((pos = str.find(delimiter, last_pos)) != std::string::npos) {
+		split_str.push_back(str.substr(last_pos, pos - last_pos));
+		last_pos = pos + delimiter.size();
+	}
+	split_str.push_back(str.substr(last_pos));
+	return (split_str);
+}
+
+size_t	Request::dechunkBody() {
+	std::string	bodyString(_body.begin(), _body.end());
+	std::vector<std::string>	lines = cppSplit(bodyString, "\r\n");
+	std::string	dechunkedBody;
+
+	for (size_t i = 1; i < lines.size() - 1; i++) {
+		if (i % 2 == 0)
+			dechunkedBody += lines[i];
+	}
+    _body.assign(dechunkedBody.begin(), dechunkedBody.end());
+	return (_body.size() + 4);
+}
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
 	static int	i = 0;
-	std::cout << "bytesReceived" << bytesReceived << std::endl;
+	size_t	endPos = 0;
 
 	std::string boundary = "\r\n\r\n";
 	std::string receivedData(buf, bytesReceived);
@@ -65,21 +94,27 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		std::cerr << "Content-Length header is missing or zero." << std::endl;
 		return;
 	} */
-	//captureFileName(receivedData);
 	if (_body.empty())
 		_body.reserve(_contentLength);
-	if (i == 0 && boundaryPos != std::string::npos && captureFileName(receivedData)) {
+	if ((i == 0 && boundaryPos != std::string::npos && captureFileName(receivedData)) || _isChunked == true) {
 		_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
 		i = 1;
 	} else if (i == 1)
 		_body.insert(_body.end(), buf, buf + bytesReceived);
 	std::string bodyString(_body.begin(), _body.end());
-	size_t	endPos = bodyString.find(_boundary + "--");
-	if (endPos != std::string::npos) {
-		std::cout << "receivedData " << receivedData << std::endl;
+
+	if (bodyString.find(_boundary + "--") != std::string::npos)
+		endPos = bodyString.find(_boundary + "--");
+	else if (bodyString.find("0\r\n\r\n") != std::string::npos)
+		endPos = bodyString.find("0\r\n\r\n");
+	if (endPos != 0) {
 		if (fileExtension(_contentType) == true) {
+			if (_fileName == "")
+				_fileName = "default";
 			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
 			std::ofstream outputFile(saveFileIn, std::ios::binary);
+			if (_isChunked)
+				endPos = dechunkBody();
 			if (outputFile.is_open()) {
 				//size_t	endBoundaryPos = receivedData.find("\r\n\r\n");
 				outputFile.write(_body.data(), endPos - 4);
@@ -90,7 +125,6 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		}
 		_body.clear();
 		i = 0;
-		//_done = true;
 		buildResponse();
 	}
 }
@@ -135,6 +169,8 @@ void Request::parseHeader()
 				_host = value;
 			else if (key == "Content-Length")
 				_contentLength = atoi(value.c_str());
+			else if (key == "Transfer-Encoding" && value == "chunked")
+				_isChunked = true;
 			else if (key == "Content-Type") {
 				size_t semicolPos = value.find(';');
 				if (semicolPos != std::string::npos)
@@ -147,7 +183,13 @@ void Request::parseHeader()
 				}
 			}
 		}
+		else
+			break ;
 		pos = end + 2;
+	}
+	if (_contentLength == 0 && _isChunked == true) {
+		_contentLength = _raw.size() - pos;
+		std::cout << "_contentLength" << _contentLength << std::endl;
 	}
 /* 	size_t expectHeaderPos = _raw.find("Expect: 100-continue");
 	if (expectHeaderPos != std::string::npos) {
@@ -356,19 +398,9 @@ void	Request::handleRequest() {
 		else
 			setStatus("405 Method Not Allowed");
 	}
-	if (_status != "" && _done == true)
+	if (_status != "" && _done == true && getResponse() == "")
 		buildResponse();
 } 
-
-void Request::printData()
-{
-	std::cout << "Request _method:    " << _method << std::endl;
-	std::cout << "Request _path:    " << _path << std::endl;
-	std::cout << "Request _version:    " << _version << std::endl;
-	std::cout << "Request _host:    " << _host << std::endl;
-	std::cout << "Request _contentType:    " << _contentType << std::endl;
-	std::cout << "Request _contentLength:    " << _contentLength << std::endl;
-}
 
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
@@ -391,6 +423,7 @@ bool	Request::fileExtension(const std::string& contentType) {
 		return true;
 	} else {
 		_contentType = "Unsupported content type";
+		setStatus("500 Internal Server Error");
 		return false;
 	}
 }

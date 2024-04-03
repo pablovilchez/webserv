@@ -26,8 +26,8 @@ class Request
 		bool	validateRequest(const std::string& method);
 		void	parseHeader();
 		void	parseBody(const char *buf, int bytesReceived);
-		void	printData();
 		bool	captureFileName(std::string receivedData);
+		size_t	dechunkBody();
 		bool	fileExtension(const std::string& contentType);
 		bool	fileType(const std::string& extension);
 		void	setStatus(const std::string &status);
@@ -69,6 +69,7 @@ class Request
 		std::string	_response; // the whole response from server is saved here !!
 		std::string	_redirectionLocation;
 		bool		_done;
+		bool		_isChunked;
 		std::string	fileToOpen;
 		std::string	_servDrive;
 		std::string	_errorLocation;
