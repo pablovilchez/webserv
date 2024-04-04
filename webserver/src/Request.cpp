@@ -47,39 +47,11 @@ bool	Request::captureFileName(std::string receivedData) {
 			size_t contTypeEndPos = receivedData.find("\r\n", contTypePos);
 			if (contTypeEndPos != std::string::npos) {
 				_contentType = receivedData.substr(contTypePos + 14, contTypeEndPos - contTypePos - 14);
-					std::cout << " OOOOOOOO: " << _contentType << "|" << std::endl;
 			}
 		}
 		return true;
 	}
 	return false;
-}
-//utils
-std::vector<std::string>	cppSplit(const std::string &str, std::string delimiter) {
-	std::size_t pos = 0;
-	std::size_t last_pos = 0;
-	std::vector<std::string> split_str;
-
-	split_str.reserve(str.size() / delimiter.size() + 1);
-	while ((pos = str.find(delimiter, last_pos)) != std::string::npos) {
-		split_str.push_back(str.substr(last_pos, pos - last_pos));
-		last_pos = pos + delimiter.size();
-	}
-	split_str.push_back(str.substr(last_pos));
-	return (split_str);
-}
-
-size_t	Request::dechunkBody() {
-	std::string	bodyString(_body.begin(), _body.end());
-	std::vector<std::string>	lines = cppSplit(bodyString, "\r\n");
-	std::string	dechunkedBody;
-
-	for (size_t i = 1; i < lines.size() - 1; i++) {
-		if (i % 2 == 0)
-			dechunkedBody += lines[i];
-	}
-    _body.assign(dechunkedBody.begin(), dechunkedBody.end());
-	return (_body.size() + 4);
 }
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
@@ -224,7 +196,6 @@ void	Request::buildResponse() {
 			else if (fileStream) {
 				_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 				fileStream.close();
-				setStatus("200 OK");
 				setExtension(fileToOpen);
 			}
 		}
@@ -280,6 +251,7 @@ void	Request::generateAutoIndex(std::string &uri) {
 	_responseBody += "</body>\n";
 	_responseBody += "</html>\n";
 	_contentType = "text/html";
+	setStatus("200 OK");
 	closedir(dir);
 }
 
@@ -311,17 +283,15 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 				const std::string&	currIndexFile = *it;
 				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
+					setStatus("200 OK");
 					break ;
 				}
 			}
 		}
-		else if (_location.getDirectoryListing()) {
+		else if (_location.getDirectoryListing())
 			generateAutoIndex(fileToOpen);
-		}
 		else
 			setStatus("404 Not Found");
-		_done = true;
-
 	}
 	else { // path is a file
 		if (fileType(_extension)) {
@@ -331,8 +301,8 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 /* 			else
 				setStatus("500 Internal Server Error"); // Unable to open file */
 		}
-	_done = true;
 	}
+	_done = true;
 }
 
 void	Request::handlePostMethod(){
@@ -370,6 +340,68 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 	_done = true;
 }
 
+void	Request::handleRequest() {
+	parseHeader();
+	if (_status == "" && !_done) {
+		if (_method == "GET")
+			handleGetMethod(fileToOpen);
+		else if (_method == "POST")
+			handlePostMethod();
+		else if (_method == "DELETE")
+			handleDeleteMethod(fileToOpen);
+		else
+			setStatus("405 Method Not Allowed");
+	}
+	if (_status != "" && _done == true && getResponse() == "")
+		buildResponse();
+} 
+
+bool	Request::handleError() {
+	std::string	errCodeStr = _status.substr(0, 3);
+
+	if (errCodeStr[0] != '3' && errCodeStr[0] != '4' && errCodeStr[0] != '5')
+		return false;
+	else {
+		std::string	errorFileName;
+		int	errCode = std::atoi(errCodeStr.c_str());
+		if (_redirectionLocation != "")
+			errorFileName = _servDrive + _errorLocation + _redirectionLocation;
+		else if (_config.getErrorPage(errCode) != "" && !(_config.getErrorPage(errCode)).empty())
+			errorFileName = _servDrive + _errorLocation + _config.getErrorPage(errCode);
+		std::ifstream file(errorFileName);
+		if (file.is_open()) {
+			std::string	line;
+			while (std::getline(file, line))
+				_responseBody += line;
+			file.close();
+		}
+		else
+			defaultErrorPage(errCodeStr);
+		_contentType = "text/html";
+		return true;
+	}
+}
+
+std::string Request::getPath() const { return _path; }
+
+void	Request::setStatus(const std::string &status) {	_status = status; }
+
+std::string	Request::getResponseHeader() const { return _responseHeader; }
+
+std::string	Request::getResponseBody() const { return _responseBody; }
+
+std::string Request::getMethod() const { return _method; }
+
+std::string Request::getExtension() const {	return _extension; }
+
+void	Request::setResponse() { _response = _responseHeader + _responseBody; }
+
+std::string	Request::getResponse() const { return _response; }
+
+bool	Request::isResponseReady() const { return _done; }
+
+/*______________________________UTILS-FUNCTIONS-START______________________________*/
+
 // por ahora falta "." ".." comprobaciones
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
@@ -384,23 +416,6 @@ std::string	Request::extractPathFromUrl(std::string& url) {
 	}
 	return (_servDrive + _location.getRoot());
 }
-
-void	Request::handleRequest() {
-	parseHeader();
-	std::cout << "status" << _status << std::endl;
-	if (_status == "" && !_done) {
-		if (_method == "GET")
-			handleGetMethod(fileToOpen);
-		else if (_method == "POST")
-			handlePostMethod();
-		else if (_method == "DELETE")
-			handleDeleteMethod(fileToOpen);
-		else
-			setStatus("405 Method Not Allowed");
-	}
-	if (_status != "" && _done == true && getResponse() == "")
-		buildResponse();
-} 
 
 bool	Request::fileExtension(const std::string& contentType) {
 	std::map<std::string, std::string> contentTypeExtensions;
@@ -495,46 +510,31 @@ void	Request::defaultErrorPage(std::string errorCode) {
 	_responseBody += "<html>\n";
 }
 
-bool	Request::handleError() {
-	std::string	errCodeStr = _status.substr(0, 3);
+std::vector<std::string>	cppSplit(const std::string &str, std::string delimiter) {
+	std::size_t pos = 0;
+	std::size_t last_pos = 0;
+	std::vector<std::string> split_str;
 
-	if (errCodeStr[0] != '3' && errCodeStr[0] != '4' && errCodeStr[0] != '5')
-		return false;
-	else {
-		std::string	errorFileName;
-		int	errCode = std::atoi(errCodeStr.c_str());
-		if (_redirectionLocation != "")
-			errorFileName = _servDrive + _errorLocation + _redirectionLocation;
-		else if (_config.getErrorPage(errCode) != "" && !(_config.getErrorPage(errCode)).empty())
-			errorFileName = _servDrive + _errorLocation + _config.getErrorPage(errCode);
-		std::ifstream file(errorFileName);
-		if (file.is_open()) {
-			std::string	line;
-			while (std::getline(file, line))
-				_responseBody += line;
-			file.close();
-		}
-		else
-			defaultErrorPage(errCodeStr);
-		_contentType = "text/html";
-		return true;
+	split_str.reserve(str.size() / delimiter.size() + 1);
+	while ((pos = str.find(delimiter, last_pos)) != std::string::npos) {
+		split_str.push_back(str.substr(last_pos, pos - last_pos));
+		last_pos = pos + delimiter.size();
 	}
+	split_str.push_back(str.substr(last_pos));
+	return (split_str);
 }
 
-std::string Request::getPath() const { return _path; }
+size_t	Request::dechunkBody() {
+	std::string	bodyString(_body.begin(), _body.end());
+	std::vector<std::string>	lines = cppSplit(bodyString, "\r\n");
+	std::string	dechunkedBody;
 
-void	Request::setStatus(const std::string &status) {	_status = status; }
+	for (size_t i = 1; i < lines.size() - 1; i++) {
+		if (i % 2 == 0)
+			dechunkedBody += lines[i];
+	}
+    _body.assign(dechunkedBody.begin(), dechunkedBody.end());
+	return (_body.size() + 4);
+}
 
-std::string	Request::getResponseHeader() const { return _responseHeader; }
-
-std::string	Request::getResponseBody() const { return _responseBody; }
-
-std::string Request::getMethod() const { return _method; }
-
-std::string Request::getExtension() const {	return _extension; }
-
-void	Request::setResponse() { _response = _responseHeader + _responseBody; }
-
-std::string	Request::getResponse() const { return _response; }
-
-bool	Request::isResponseReady() const { return _done; }
+/*______________________________UTILS-FUNCTIONS-END______________________________*/
