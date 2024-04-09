@@ -83,8 +83,9 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		if (fileExtension(_contentType) == true) {
 			if (_fileName == "")
 				_fileName = "default";
-			std::string	saveFileIn = _servDrive + "/var/drive/" + _fileName;
-			std::ofstream outputFile(saveFileIn, std::ios::binary);
+			std::string	saveFileIn = _servDrive + _location.getRoot() + "/upload/" + _fileName;
+			std::cout << "Saving file to: " << saveFileIn << std::endl;
+			std::ofstream outputFile(saveFileIn.c_str(), std::ios::binary);
 			if (_isChunked)
 				endPos = dechunkBody();
 			if (outputFile.is_open()) {
@@ -127,7 +128,7 @@ void Request::parseHeader()
 		return;
 	}
 	fileToOpen = extractPathFromUrl(_path);
-		std::cout << "HERE: "<< fileToOpen << std::endl;
+	std::cout << "HERE: "<< fileToOpen << std::endl; /**************************/
 	if (access(fileToOpen.c_str(), F_OK) == -1) {
 		_done = true;
 		return (setStatus("404 Not Found"));
@@ -220,6 +221,8 @@ bool	Request::validateRequest(const std::string& method) {
 	else
 		requestedLocation = _path;
 	_location = _config.getLocation(requestedLocation);
+	if (_location.getLocation() == "null")
+		_location = _config.getLocation("/");
 	if (_location.getLocation() == "null") {
 		setStatus("404 Not Found");
 		return false;
@@ -285,7 +288,10 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 			const std::set<std::string>&	indexFiles = _location.getIndex();
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
-				fileToOpen += (fileToOpen.back() != '/') ? '/' + currIndexFile : currIndexFile;
+				if (!fileToOpen.empty() && fileToOpen[fileToOpen.size() - 1] != '/') {
+					fileToOpen += '/';
+				}
+				fileToOpen += currIndexFile;
 				if (access(fileToOpen.c_str(), F_OK) == 0) {
 					setStatus("200 OK");
 					break ;
@@ -329,7 +335,7 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 
 	strcpy(resolvedPath, fileToDelete.c_str());
 
-	if (realpath(fileToDelete.c_str(), resolvedPath) == nullptr) {
+	if (realpath(fileToDelete.c_str(), resolvedPath) == NULL) {
 		setStatus("404 Not Found");
 		return;
 	}
@@ -349,6 +355,7 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
+	std::cout << "root: " << _location.getRoot() << std::endl;
 	if (_location.getRootLocation())
 		return (_servDrive + _location.getRoot() + url);
 	else if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) { // directory and file
@@ -394,6 +401,7 @@ bool	Request::fileExtension(const std::string& contentType) {
 	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));
 	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
 	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
+	contentTypeExtensions.insert(std::make_pair("application/javascript", ".js"));
 	contentTypeExtensions.insert(std::make_pair("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"));
 
 	std::map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
@@ -421,6 +429,7 @@ bool	Request::fileType(const std::string& extension) {
 	extensionToContentType.insert(std::make_pair(".json", "application/json"));
 	extensionToContentType.insert(std::make_pair(".pdf", "application/pdf"));
 	extensionToContentType.insert(std::make_pair(".doc", "application/msword"));
+	extensionToContentType.insert(std::make_pair(".js", "application/javascript"));
 	extensionToContentType.insert(std::make_pair(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
 
 	// Find the content type corresponding to the extension
@@ -525,7 +534,7 @@ bool	Request::handleError() {
 			errorFileName = _servDrive + _errorLocation + _redirectionLocation;
 		else if (_config.getErrorPage(errCode) != "" && !(_config.getErrorPage(errCode)).empty())
 			errorFileName = _servDrive + _errorLocation + _config.getErrorPage(errCode);
-		std::ifstream file(errorFileName);
+		std::ifstream file(errorFileName.c_str());
 		if (file.is_open()) {
 			std::string	line;
 			while (std::getline(file, line))
