@@ -1,6 +1,6 @@
 #include "Location.hpp"
 
-Location::Location() : _directoryListing(false) { }
+Location::Location() : _directoryListing(false), _rootLocation(false) { }
 
 Location::Location(const Location &other) {
 	_location = other._location;
@@ -10,9 +10,10 @@ Location::Location(const Location &other) {
 	_directoryListing = other._directoryListing;
 	_cgiExtension = other._cgiExtension;
 	_return = other._return;
+	_rootLocation = other._rootLocation;
 }
 
-Location::Location(const std::string &config) : _directoryListing(false) {
+Location::Location(const std::string &config) : _location("null"), _directoryListing(false), _rootLocation(false) {
 	parseConfig(config);
 }
 
@@ -25,6 +26,7 @@ Location& Location::operator=(const Location &other) {
 		_directoryListing = other._directoryListing;
 		_cgiExtension = other._cgiExtension;
 		_return = other._return;
+		_rootLocation = other._rootLocation;
 	}
 	return *this;
 }
@@ -55,10 +57,13 @@ void Location::parseConfig(const std::string &config) {
 		std::istringstream lineStream(line);
 		lineStream >> key;
 		if (key == "location") {
-			if (lineStream >> value)
+			if (lineStream >> value) {
 				_location = value;
+				if (_location == "/")
+					_rootLocation = true;
+			}
 			else
-				_location = "";
+				_location = "null";
 		}
 		else if (key == "root") {
 			if (lineStream >> value)
@@ -170,4 +175,8 @@ std::map<std::string, std::string> Location::getCgiExtension() const {
 // Check if the file is in the index set
 bool	Location::isIndexFile(std::string& fileName) const {
 	return _index.find(fileName) != _index.end();
+}
+
+bool	Location::getRootLocation() const {
+	return (_rootLocation);
 }

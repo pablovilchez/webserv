@@ -1,15 +1,41 @@
-- to upload a photo:
-curl -X POST -H "Content-Type: image/jpg" -F "file=@/Users/gkrusta/Desktop/d.jpg" localhost:8080
+# Example Curl Commands for Testing Web Server
+-- take the following files from /var/curl folder and put them on desktop --
 
+
+-- POST --
+- to upload a photo:
+curl -X POST -H "Content-Type: image/jpg" -F "file=@/Users/$USER/Desktop/photo.jpg" localhost:8080
+
+- to upload a text file:
+curl -X POST -H "Content-Type: text/plain" -F "file=@/Users/$USER/Desktop/text.txt" http://localhost:8080
+
+- to upload a PDF file:
+curl -X POST -F "file=@/Users/$USER/Desktop/file.pdf" http://localhost:8080
+
+- to upload a HTML file:
+curl -X POST -H "Content-Type: text/html" -F "file=@/Users/$USER/Desktop/data3.html" http://localhost:8080
+
+- to upload a JSON data:
+curl -X POST http://localhost:8080 \
+  -H 'Content-Type: application/json' \
+  -H 'Transfer-Encoding: chunked' \
+  -d $'7\r\n{"key":\r\n5\r\n"value"}\r\n0\r\n'
+
+- to upload an icon file: (not working for now)
+curl -X POST -H "Content-Type: image/x-icon" -F "file=@/Users/$USER/Desktop/favicion.ico" http://localhost:8080
+
+
+-- DELETE --
 - to delete a directory (Forbidden):
 curl -X DELETE http://localhost:8080/delete_this
 
 - to delete a file:
-curl -X DELETE http://localhost:8080/delete_this.jpg
+curl -X DELETE http://localhost:8080/photo.jpg
 
 
+-- GET --
 - to reach a website:
-curl -X GET http://localhost:8080/default/index.html
+curl -X GET http://localhost:8080/www/index.html
 
 - to test error page:
 curl -X GET http://localhost:8080/default/notexisting.html

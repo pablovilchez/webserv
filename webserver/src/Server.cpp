@@ -175,14 +175,24 @@ int Server::getMaxSize() const {
 	return _maxSize;
 }
 
+
 const Location& Server::getLocation(const std::string &location) const {
+	std::vector<Location>::const_iterator it_root;
 	std::vector<Location>::const_iterator it_vector;
+
 	for(it_vector = _locations.begin(); it_vector != _locations.end(); it_vector++) {
 		if((*it_vector).getLocation() == location) {
 			return *it_vector;
 		}
+		if((*it_vector).getRootLocation()) {
+			it_root = it_vector;
+		}
 	}
-	static const Location invalidLocation("null");
-    return invalidLocation;
+	if (it_vector->getRootLocation())
+		return *it_root;
+	else {
+		static const Location invalidLocation("null");
+    	return invalidLocation;
+	}
 }
 
