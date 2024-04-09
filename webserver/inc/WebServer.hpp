@@ -8,6 +8,7 @@
 #define MAXCLIENTS 150
 
 class Server;
+class Request;
 
 class WebServer {
 	public:
@@ -37,6 +38,8 @@ class WebServer {
         bool                                _correctConfig;
 		bool 								_running;
 		std::string 						_response;
+		std::map<int, Request>				_clientRequests;
+
 };
 
 #endif

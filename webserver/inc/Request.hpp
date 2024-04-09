@@ -27,7 +27,7 @@ class Request
 		void	parseHeader();
 		void	parseBody(const char *buf, int bytesReceived);
 		void	printData();
-		void	captureFileName(std::string receivedData);
+		bool	captureFileName(std::string receivedData);
 		bool	fileExtension(const std::string& contentType);
 		bool	fileType(const std::string& extension);
 		void	setStatus(const std::string &status);
@@ -46,7 +46,8 @@ class Request
 		std::string getExtension() const;
 		bool isDirectory(const std::string& path);
 		bool fileOrDirectory(const std::string& path);
-
+		size_t	dechunkBody();
+		bool	isResponseReady() const;
 
 	private:
 		std::string	_raw;
@@ -68,8 +69,10 @@ class Request
 		std::string	_response; // the whole response from server is saved here !!
 		std::string	_redirectionLocation;
 		bool		_done;
+		bool		_isChunked;
 		std::string	fileToOpen;
 		std::string	_servDrive;
+		std::string	_errorLocation;
 		std::map<std::string, std::string> contentTypeExtensions;
 };
 

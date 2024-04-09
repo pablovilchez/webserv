@@ -23,6 +23,7 @@ class Location
 		std::map<std::string, std::string> getCgiExtension() const;
 		std::map<int, std::string> getReturn() const;
 		bool isIndexFile(std::string& fileName) const;
+		bool	getRootLocation() const;
 
 	private:
 		std::string							_location;
@@ -32,6 +33,7 @@ class Location
 		bool								_directoryListing;
 		std::map<std::string, std::string>	_cgiExtension;
 		std::map<int, std::string>			_return;
+		bool								_rootLocation;
 };
 
 #endif

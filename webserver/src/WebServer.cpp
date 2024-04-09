@@ -1,5 +1,6 @@
 #include "WebServer.hpp"
 
+
 /*______________________________UTILS-FUNCTIONS-START______________________________*/
 
 bool web_isComment(const std::string &line) {
@@ -252,7 +253,8 @@ void WebServer::checkServes() {
 void WebServer::checkClients() {
 	char buffer[1024];
 	memset(buffer, 0, 1024);
-
+	std::vector<pollfd>::iterator fd_it;
+	std::vector<pollfd>::iterator end = _poll_fds.end();
 	size_t it = _listSize;
 	while (it < _pollSize) {
 		if (_poll_fds[it].revents & POLLIN && _poll_fds[it].fd != -1) {
@@ -272,20 +274,38 @@ void WebServer::checkClients() {
 					std::string request_line;
 					getline(request, request_line);
 
-					std::cout << YELLOW_TEXT << "REQUEST: \n" << buffer << RESET_COLOR << std::endl;
-					Server server = getServerConfig(buffer);
+					//std::cout << YELLOW_TEXT << "REQUEST: \n" << buffer << RESET_COLOR << std::endl;
+					std::cout << "request_line" << request_line << std::endl;
 
-
-					Request newRequest(buffer, server);
-					memset(buffer, 0, 1024);
-					_response = newRequest.getResponse();
-					_poll_fds[it].events = POLLOUT;
+					std::map<int, Request>::iterator it_req = _clientRequests.find(_poll_fds[it].fd);
+					if (it_req != _clientRequests.end()) {
+						it_req->second.parseBody(buffer, bytes);
+					} else {
+						Server server = getServerConfig(buffer);
+						Request newRequest(buffer, server);
+						memset(buffer, 0, 1024);
+						_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
+					}
+					for (std::map<int, Request>::iterator it_req = _clientRequests.begin(); it_req != _clientRequests.end(); ++it_req) {
+						if (it_req->second.isResponseReady()) {
+							std::cout << "is ready" << std::endl;
+							_response = it_req->second.getResponse();
+							for (fd_it = _poll_fds.begin(); fd_it != end; fd_it++) {
+								if ((_poll_fds[it].fd) == it_req->first) {
+									_poll_fds[it].events = POLLOUT;
+									break;
+								}
+							}
+						}
+					}
 				}
 		}
 		else if (_poll_fds[it].revents & POLLOUT && _poll_fds[it].fd != -1) {
 			std::cout << GREEN_TEXT << "RESPONSE: \n" << _response << RESET_COLOR << std::endl;
 			send(_poll_fds[it].fd, _response.c_str(), _response.size(), 0);
 			_poll_fds[it].events = POLLIN;
+			_clientRequests.erase(fd_it->fd);
+			_response.clear();
 		}
 		else if ((_poll_fds[it].revents & POLLERR || _poll_fds[it].revents & POLLHUP) && _poll_fds[it].fd != -1) {
 			if (_poll_fds[it].revents & POLLERR) {
