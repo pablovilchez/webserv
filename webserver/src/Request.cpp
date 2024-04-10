@@ -20,7 +20,7 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	fileToOpen = "";
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
-	_errorLocation = "/var/www/error/";
+	_errorLocation = "/var/srv_" + _config.getServerName() + "/error";
 	handleRequest();
 }
 
@@ -542,6 +542,7 @@ bool	Request::handleError() {
 			file.close();
 		}
 		else {
+			std::cout << "errorFileName: " << errorFileName << std::endl;
 			_responseBody += defaultErrorPage(errCodeStr, "Page Not Found");
 		}
 		_contentType = "text/html";
