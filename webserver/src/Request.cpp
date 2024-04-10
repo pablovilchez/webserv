@@ -83,7 +83,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		if (fileExtension(_contentType) == true) {
 			if (_fileName == "")
 				_fileName = "default";
-			std::string	saveFileIn = _servDrive + _location.getRoot() + "/upload/" + _fileName;
+			std::string	saveFileIn = _servDrive + _location.getRoot() + "/" + _fileName;
 			std::cout << "Saving file to: " << saveFileIn << std::endl;
 			std::ofstream outputFile(saveFileIn.c_str(), std::ios::binary);
 			if (_isChunked)

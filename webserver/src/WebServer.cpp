@@ -281,6 +281,7 @@ void WebServer::checkClients() {
 
 						Server server = getServerConfig(buffer);
 						Request newRequest(buffer, server);
+						memset(buffer, 0, 1024);
 						_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
 					}
 					for (std::map<int, Request>::iterator it_req = _clientRequests.begin(); it_req != _clientRequests.end(); ++it_req) {
