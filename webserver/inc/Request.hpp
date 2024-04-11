@@ -19,6 +19,7 @@ class Request
 		void	handleRequest();
 		void	handleGetMethod(std::string &fileToOpen);
 		void	handlePostMethod();
+		void	processFormData();
 		void	handleDeleteMethod(std::string &fileToDelete);
 		bool	handleError();
 		static std::string defaultErrorPage(std::string errorCode, std::string errorDescription);

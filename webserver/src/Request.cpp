@@ -68,7 +68,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	} */
 	if (_body.empty())
 		_body.reserve(_contentLength);
-	if ((i == 0 && boundaryPos != std::string::npos && captureFileName(receivedData)) || _isChunked == true) {
+	if ((i == 0 && boundaryPos != std::string::npos && captureFileName(receivedData)) || _isChunked) {
 		_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
 		i = 1;
 	} else if (i == 1)
@@ -80,7 +80,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	else if (bodyString.find("0\r\n\r\n") != std::string::npos)
 		endPos = bodyString.find("0\r\n\r\n");
 	if (endPos != 0) {
-		if (fileExtension(_contentType) == true) {
+		if (fileExtension(_contentType)) {
 			if (_fileName == "")
 				_fileName = "default";
 			std::string	saveFileIn = _servDrive + _location.getRoot() + "/" + _fileName;
@@ -161,7 +161,7 @@ void Request::parseHeader()
 			break ;
 		pos = end + 2;
 	}
-	if (_contentLength == 0 && _isChunked == true) {
+	if (_contentLength == 0 && _isChunked) {
 		_contentLength = _raw.size() - pos;
 		std::cout << "_contentLength" << _contentLength << std::endl;
 	}
@@ -203,8 +203,15 @@ void	Request::buildResponse() {
 				setExtension(fileToOpen);
 			}
 		}
-		else if (_method == "POST" || _method == "DELETE")
-			_responseBody = "Request served";
+		else if (_method == "POST" || _method == "DELETE") {
+			_responseBody += "<html>\n <head>\n <title>Posted</title>\n </head>\n <body>";
+			_responseBody += "<h1 style=\"text-align: center;\">+++ SERVER: " + _config.getServerName() + " +++</h1>\n";
+			_responseBody += "<h3 style=\"text-align: center;\">Request served</h3>\n";
+			_responseBody += "<p style=\"text-align: center;\"><br /> <a href=\"/\"><button>Back</button></a></p>";
+			_responseBody += "</body>\n";
+			_responseBody += "</html>\n";
+			_contentType = "text/html";
+		}
 	}
 	buildHeader();
 	setResponse();
@@ -246,11 +253,13 @@ void	Request::generateAutoIndex(std::string &uri) {
 		return;
 	}
 	_responseBody += "<html>\n <head>\n <title>Index of " + _location.getLocation() + "</title>\n </head>\n <body>";
-	_responseBody += "<h1>These are files inside " + _location.getLocation() + "</h1>";
+	_responseBody += "<h1 style=\"text-align: center;\">+++ SERVER: " + _config.getServerName() + " +++</h1>\n";
+	_responseBody += "<h2 style=\"text-align: center;\">" + _location.getLocation() + "</h2>\n<p> </p>\n";
+	_responseBody += "<h3>Directory listing:</h3>\n<p> </p>\n";
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
-		if (currDir->d_type == DT_REG && std::string(currDir->d_name).find(".html") != std::string::npos) {
-			std::string	filePath = uri + std::string(currDir->d_name);
+		if (currDir->d_type == DT_REG) {
+			std::string	filePath = std::string(currDir->d_name);
 			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
 		}
 	}
@@ -320,6 +329,11 @@ void	Request::handlePostMethod(){
 		setStatus("403 Forbiden");
 	else if (_config.getMaxSize() < _contentLength)
 		setStatus("413 Request Entity Too Large");
+	else if (_raw.find("Content-Type: application/x-www-form-urlencoded")) {     // Form found
+		processFormData();
+		setStatus("200 OK");
+		_done = true;
+	}
 	else { // handle basic file
 		const char *buf = _raw.c_str();
 		parseBody(buf, _raw.size());
@@ -328,6 +342,26 @@ void	Request::handlePostMethod(){
 		handleCgi(); */
 }
 
+void	Request::processFormData() {
+	std::string formData(_raw.begin() + _raw.find("\r\n\r\n") + 4, _raw.end());
+	std::string filename("var/srv_" + _config.getServerName() + "/submit/submits.txt");
+	std::ofstream file(filename.c_str(), std::ios::app);
+	if (file.is_open()) {
+		time_t now = time(0);
+		char dt[30];
+		ctime_r(&now, dt);
+		dt[strlen(dt) - 1] = '\0';
+		file << dt << " => ";
+		for (size_t i = 0; i < formData.length(); ++i) {
+			if (formData[i] == '&')
+				formData[i] = ' ';
+		}
+		file << formData << std::endl;
+		file.close();
+	}
+	else
+		std::cerr << "Error opening file for writing." << std::endl;
+}
 
 void	Request::handleDeleteMethod(std::string &fileToDelete){
 	char	resolvedPath[PATH_MAX];
@@ -384,8 +418,9 @@ void	Request::handleRequest() {
 		else
 			setStatus("405 Method Not Allowed");
 	}
-	if (_status != "" && _done == true && getResponse() == "")
+	if (_status != "" && _done && getResponse() == "") {
 		buildResponse();
+	}
 }
 
 bool	Request::fileExtension(const std::string& contentType) {
@@ -551,7 +586,7 @@ bool	Request::handleError() {
 }
 
 std::vector<std::string>	cppSplit(const std::string &str, std::string delimiter) {
-	std::size_t pos = 0;
+	std::size_t pos;
 	std::size_t last_pos = 0;
 	std::vector<std::string> split_str;
 
