@@ -128,7 +128,6 @@ void Request::parseHeader()
 		return;
 	}
 	fileToOpen = extractPathFromUrl(_path);
-	std::cout << "HERE: "<< fileToOpen << std::endl; /**************************/
 	if (access(fileToOpen.c_str(), F_OK) == -1) {
 		_done = true;
 		return (setStatus("404 Not Found"));
@@ -259,8 +258,9 @@ void	Request::generateAutoIndex(std::string &uri) {
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
 		if (currDir->d_type == DT_REG) {
+			std::cout << "location: " << _location.getLocation() << std::endl;
 			std::string	filePath = std::string(currDir->d_name);
-			_responseBody += "<li><a href=\"" + filePath + "\">" + _location.getLocation() + filePath + "</a></li>\n";
+			_responseBody += "<li><a href=\"" + _location.getLocation() + "/" + filePath + "\">" + filePath + "</a></li>\n";
 		}
 	}
 	_responseBody += "</ul>\n";
@@ -390,7 +390,6 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 std::string	Request::extractPathFromUrl(std::string& url) {
 	size_t	firstSlashPos = url.find('/');
 	size_t	secondSlashPos = url.find('/', firstSlashPos + 1);
-	std::cout << "root: " << _location.getRoot() << std::endl;
 	if (_location.getRootLocation())
 		return (_servDrive + _location.getRoot() + url);
 	else if (firstSlashPos != std::string::npos && secondSlashPos != std::string::npos) { // directory and file

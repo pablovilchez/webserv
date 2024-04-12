@@ -188,7 +188,7 @@ const Location& Server::getLocation(const std::string &location) const {
 			it_root = it_vector;
 		}
 	}
-	if (it_vector->getRootLocation())
+	if (it_vector != _locations.end())
 		return *it_root;
 	else {
 		static const Location invalidLocation("null");
