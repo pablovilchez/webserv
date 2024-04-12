@@ -260,7 +260,7 @@ void	Request::generateAutoIndex(std::string &uri) {
 	while ((currDir = readdir(dir)) != NULL) {
 		if (currDir->d_type == DT_REG) {
 			std::string	filePath = std::string(currDir->d_name);
-			_responseBody += "<li><a href=\"" + filePath + "\">" + filePath + "</a></li>\n";
+			_responseBody += "<li><a href=\"" + filePath + "\">" + _location.getLocation() + filePath + "</a></li>\n";
 		}
 	}
 	_responseBody += "</ul>\n";
@@ -329,7 +329,7 @@ void	Request::handlePostMethod(){
 		setStatus("403 Forbiden");
 	else if (_config.getMaxSize() < _contentLength)
 		setStatus("413 Request Entity Too Large");
-	else if (_raw.find("Content-Type: application/x-www-form-urlencoded")) {     // Form found
+	else if (_raw.find("Content-Type: application/x-www-form-urlencoded") != std::string::npos) {     // Form found
 		processFormData();
 		setStatus("200 OK");
 		_done = true;
@@ -344,8 +344,9 @@ void	Request::handlePostMethod(){
 
 void	Request::processFormData() {
 	std::string formData(_raw.begin() + _raw.find("\r\n\r\n") + 4, _raw.end());
-	std::string filename("var/srv_" + _config.getServerName() + "/submit/submits.txt");
-	std::ofstream file(filename.c_str(), std::ios::app);
+	std::string fileName("var/srv_" + _config.getServerName() + "/submit/submits.txt");
+	std::string fileToUpload(_raw.begin() + _raw.find("name=") + 6, _raw.end());
+	std::ofstream file(fileName.c_str(), std::ios::app);
 	if (file.is_open()) {
 		time_t now = time(0);
 		char dt[30];
