@@ -37,6 +37,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <cstdio>
-
+#include <algorithm>
 
 #endif

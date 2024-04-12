@@ -330,13 +330,14 @@ void WebServer::initService() {
 		checkServes();
 		checkClients();
 
-		/* size_t it_delete = _listSize;
-		while (it_delete < _pollSize) {
-			if (_poll_fds[it_delete].fd == -1) {
-				_poll_fds.erase(_poll_fds.begin() + it_delete);
+		std::vector<pollfd>::const_iterator it = _poll_fds.begin();
+		while (it != _poll_fds.end()) {
+			if (it->fd == -1) {
+				it = _poll_fds.erase(it);
+			} else {
+				++it;
 			}
-			it_delete++;
-		} */
+		}
 	}
 }
 
