@@ -330,13 +330,13 @@ void WebServer::initService() {
 		checkServes();
 		checkClients();
 
-		size_t it_delete = _listSize;
+		/* size_t it_delete = _listSize;
 		while (it_delete < _pollSize) {
 			if (_poll_fds[it_delete].fd == -1) {
 				_poll_fds.erase(_poll_fds.begin() + it_delete);
 			}
 			it_delete++;
-		}
+		} */
 	}
 }
 
