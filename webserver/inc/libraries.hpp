@@ -38,5 +38,6 @@
 #include <sys/stat.h>
 #include <cstdio>
 #include <algorithm>
+#include <ctime>
 
 #endif

@@ -24,6 +24,9 @@ curl -X POST http://localhost:8080 \
 - to upload an icon file: (not working for now)
 curl -X POST -H "Content-Type: image/x-icon" -F "file=@/Users/$USER/Desktop/favicion.ico" http://localhost:8080
 
+- to send a POST request with form data:
+curl -X POST -d "name=def_name&login=def_login&age=def_age" http://drive.localhost:8080/submit
+
 
 -- DELETE --
 - to delete a directory (Forbidden):
@@ -42,3 +45,6 @@ curl -X GET http://localhost:8080/default/notexisting.html
 
 - to test default error page:
 remove error_page from config and default page will be shown
+
+- to test CGI script:
+curl -X GET http://cgi.localhost:8080/cgi-bin/random_number.py --output -

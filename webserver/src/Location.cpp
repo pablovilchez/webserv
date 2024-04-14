@@ -96,7 +96,7 @@ void Location::parseConfig(const std::string &config) {
 			lineStream >> value;
 			_return.insert(std::make_pair(code, value));
 		}
-		else if (key == "fastcgi_pass") {
+		else if (key == "cgi_pass") {
 			lineStream >> value;
 			std::string extension = value;
 			lineStream >> value;

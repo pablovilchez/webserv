@@ -277,6 +277,8 @@ void WebServer::checkClients() {
 						std::istringstream request(buffer);
 						std::string request_line;
 						getline(request, request_line);
+						if (request_line.find("?") != std::string::npos)  // remove params from request
+							request_line = request_line.substr(0, request_line.find("?"));
 						std::cout << YELLOW_TEXT << "REQUEST: \n" << request_line << RESET_COLOR << std::endl;
 
 						Server server = getServerConfig(buffer);
@@ -330,7 +332,7 @@ void WebServer::initService() {
 		checkServes();
 		checkClients();
 
-		std::vector<pollfd>::const_iterator it = _poll_fds.begin();
+		std::vector<pollfd>::iterator it = _poll_fds.begin();
 		while (it != _poll_fds.end()) {
 			if (it->fd == -1) {
 				it = _poll_fds.erase(it);

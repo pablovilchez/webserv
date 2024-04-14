@@ -14,6 +14,7 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	_responseHeader = "";
 	_responseBody = "";
 	_response = "";
+	_cgiResponse = "";
 	_done = false;
 	_isChunked = false;
 	_redirectionLocation = "";
@@ -21,7 +22,9 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	char	buf[1024];
 	_servDrive = getcwd(buf, sizeof(buf));
 	_errorLocation = "/var/srv_" + _config.getServerName() + "/error";
+	_cgiFile = "";
 	handleRequest();
+//	printParamsCont();
 }
 
 Request::~Request() { }
@@ -115,6 +118,11 @@ void Request::parseHeader()
 		if (space1 != std::string::npos || space2 != std::string::npos) {
 			_method = line.substr(0, space1);
 			_path = line.substr(space1 + 1, space2 - space1 - 1);
+			size_t	paramsFound = _path.find('?'); // search for parameters in the URL
+			if (paramsFound != std::string::npos) {
+				_rawParams = _path.substr(paramsFound + 1);
+				_path = _path.substr(0, paramsFound);
+			}
 			_version = line.substr(space2 + 1);
 		}
 		pos = end + 2;
@@ -192,7 +200,8 @@ void	Request::buildHeader() {
 
 void	Request::buildResponse() {
 	if (!handleError()) {
-		if (_method == "GET") {
+		if (_method == "GET" && _cgiResponse == "") {
+			std::cout << "CGI response is empty." << std::endl;
 			std::fstream	fileStream(fileToOpen.c_str());
 			if (!_responseBody.empty())
 				setStatus("200 OK");
@@ -202,10 +211,15 @@ void	Request::buildResponse() {
 				setExtension(fileToOpen);
 			}
 		}
-		else if (_method == "POST" || _method == "DELETE") {
+		else if (_method == "POST" || _method == "DELETE" || _cgiResponse != "") {
 			_responseBody += "<html>\n <head>\n <title>Posted</title>\n </head>\n <body>";
 			_responseBody += "<h1 style=\"text-align: center;\">+++ SERVER: " + _config.getServerName() + " +++</h1>\n";
 			_responseBody += "<h3 style=\"text-align: center;\">Request served</h3>\n";
+			if (_cgiResponse != "") {
+				_responseBody += "<p> </p>\n";
+				_responseBody += "<p style=\"text-align: center;\">CGI response: " + _cgiResponse + "</p>";
+				_responseBody += "<p> </p>\n";
+			}
 			_responseBody += "<p style=\"text-align: center;\"><br /> <a href=\"/\"><button>Back</button></a></p>";
 			_responseBody += "</body>\n";
 			_responseBody += "</html>\n";
@@ -258,7 +272,6 @@ void	Request::generateAutoIndex(std::string &uri) {
 	_responseBody += "<ul>\n";
 	while ((currDir = readdir(dir)) != NULL) {
 		if (currDir->d_type == DT_REG) {
-			std::cout << "location: " << _location.getLocation() << std::endl;
 			std::string	filePath = std::string(currDir->d_name);
 			_responseBody += "<li><a href=\"" + _location.getLocation() + "/" + filePath + "\">" + filePath + "</a></li>\n";
 		}
@@ -284,16 +297,19 @@ void	Request::generateAutoIndex(std::string &uri) {
 }
  */
 
-void	Request::handleGetMethod(std::string &fileToOpen){
+void	Request::handleGetMethod(std::string &fileToOpen) {
+	if (_rawParams != "")
+		parseParams();
+
 	if (fileOrDirectory(fileToOpen)) { // path is a directory
-		if (!_location.getReturn().empty()) {
+		if (!_location.getReturn().empty()) {  // redirection found
 			std::map<int, std::string>	redirections = _location.getReturn();
 			if (redirections.find(301) != redirections.end()) {
 				_redirectionLocation = redirections[301];
 				setStatus("301 Moved Permanently");
 			}
 		}
-		else if (!_location.getIndex().empty()) {
+		else if (!_location.getIndex().empty()) {  // index file found
 			const std::set<std::string>&	indexFiles = _location.getIndex();
 			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
 				const std::string&	currIndexFile = *it;
@@ -314,23 +330,41 @@ void	Request::handleGetMethod(std::string &fileToOpen){
 	}
 	else { // path is a file
 		if (fileType(_extension)) {
-			// if (!_location.getCgiExtension().empty())
-				// Handle CGI processing
-			setStatus("200 OK");
-/* 			else
-				setStatus("500 Internal Server Error"); // Unable to open file */
+			if (_contentType.find("application/x") != std::string::npos) {
+				if (_location.getCgiExtension().empty())
+					setStatus("500 Internal Server Error");
+				else {
+					_cgiResponse += solveCgi();
+					setStatus("200 OK");
+				}
+			}
+			else
+				setStatus("200 OK");
 		}
 	}
 	_done = true;
 }
 
 void	Request::handlePostMethod(){
+	_rawParams = _raw.substr(_raw.find("\r\n\r\n") + 4);
+	if (_rawParams != "")
+		parseParams();
+
 	if (!_location.isAcceptedMethod("POST"))
 		setStatus("403 Forbiden");
 	else if (_config.getMaxSize() < _contentLength)
 		setStatus("413 Request Entity Too Large");
 	else if (_raw.find("Content-Type: application/x-www-form-urlencoded") != std::string::npos) {     // Form found
-		processFormData();
+		size_t	lastSlashPos = _path.find_last_of('/');
+		std::string	_cgiFile = _path.substr(lastSlashPos + 1);
+		if (_cgiFile.find(".php") != std::string::npos || _cgiFile.find(".py") != std::string::npos) {
+			if (_location.getCgiExtension().empty())
+				setStatus("500 Internal Server Error");
+			else {
+				_cgiResponse += solveCgi();
+				setStatus("200 OK");
+			}
+		}
 		setStatus("200 OK");
 		_done = true;
 	}
@@ -342,22 +376,47 @@ void	Request::handlePostMethod(){
 		handleCgi(); */
 }
 
-void	Request::processFormData() {
-	std::string formData(_raw.begin() + _raw.find("\r\n\r\n") + 4, _raw.end());
+void	Request::parseParams() {
+	if (_rawParams != "") {
+		std::vector <std::string> params = cppSplit(_rawParams, "&");
+		for (size_t i = 0; i < params.size(); i++) {
+			size_t eqPos = params[i].find('=');
+			if (eqPos != std::string::npos) {
+				std::string key = params[i].substr(0, eqPos);
+				std::string value = params[i].substr(eqPos + 1);
+				_pairsParams[key] = value;
+			} else
+				_singlesParams.push_back(params[i]);
+		}
+		logParams();
+	}
+}
+
+void	Request::logParams() {
 	std::string fileName("var/srv_" + _config.getServerName() + "/submit/submits.txt");
 	std::string fileToUpload(_raw.begin() + _raw.find("name=") + 6, _raw.end());
 	std::ofstream file(fileName.c_str(), std::ios::app);
+
 	if (file.is_open()) {
 		time_t now = time(0);
 		char dt[30];
 		ctime_r(&now, dt);
 		dt[strlen(dt) - 1] = '\0';
 		file << dt << " => ";
-		for (size_t i = 0; i < formData.length(); ++i) {
-			if (formData[i] == '&')
-				formData[i] = ' ';
+		if (_pairsParams.size() > 0) {
+			file << "[form data] ";
+			file << "Name: " << _pairsParams["name"] << "   ";
+			file << "Login: " << _pairsParams["login"] << "   ";
+			file << "Age: " << _pairsParams["age"] << "\n";
 		}
-		file << formData << std::endl;
+		else {
+			std::vector<std::string>::iterator it;
+			file << "[cgi data] ";
+			for (it = _singlesParams.begin(); it != _singlesParams.end(); it++) {
+				file << *it << "   ";
+			}
+			file << "\n";
+		}
 		file.close();
 	}
 	else
@@ -384,6 +443,40 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 		setStatus("500 Internal Server Error");
 	_contentType = "text/plain";
 	_done = true;
+}
+
+std::string	Request::solveCgi() {
+	std::string response = "";
+	std::string arg = "";
+
+	std::vector<std::string>::iterator it;
+	for (it = _singlesParams.begin(); it != _singlesParams.end(); it++) {
+		arg += *it + "&";
+	}
+	const char *args[] = {fileToOpen.c_str(), fileToOpen.c_str(), arg.c_str(), NULL};
+
+	int pipeFd[2];
+
+	pipe(pipeFd);
+	pid_t pid = fork();
+	if (pid == 0) {
+		close(pipeFd[0]);
+		dup2(pipeFd[1], STDOUT_FILENO);
+		close(pipeFd[1]);
+		execve("/usr/bin/python3", const_cast<char *const *>(args), NULL);
+		std::cerr << "Error of execution." << std::endl;
+		exit(1);
+	}
+	else {
+		int status;
+		waitpid(pid, &status, 0);
+		close(pipeFd[1]);
+		response.resize(4096);
+		read(pipeFd[0], &response[0], 4096);
+		close(pipeFd[0]);
+		std::cout << "CGI response: " << response << std::endl;
+	}
+	return response;
 }
 
 // por ahora falta "." ".." comprobaciones
@@ -437,6 +530,8 @@ bool	Request::fileExtension(const std::string& contentType) {
 	contentTypeExtensions.insert(std::make_pair("application/pdf", ".pdf"));
 	contentTypeExtensions.insert(std::make_pair("application/msword", ".doc"));
 	contentTypeExtensions.insert(std::make_pair("application/javascript", ".js"));
+	contentTypeExtensions.insert(std::make_pair("application/x-python-code", ".py"));
+	contentTypeExtensions.insert(std::make_pair("application/x-php", ".php"));
 	contentTypeExtensions.insert(std::make_pair("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"));
 
 	std::map<std::string, std::string>::iterator it = contentTypeExtensions.find(contentType);
@@ -465,6 +560,8 @@ bool	Request::fileType(const std::string& extension) {
 	extensionToContentType.insert(std::make_pair(".pdf", "application/pdf"));
 	extensionToContentType.insert(std::make_pair(".doc", "application/msword"));
 	extensionToContentType.insert(std::make_pair(".js", "application/javascript"));
+	extensionToContentType.insert(std::make_pair(".py", "application/x-python-code"));
+	extensionToContentType.insert(std::make_pair(".php", "application/x-php"));
 	extensionToContentType.insert(std::make_pair(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
 
 	// Find the content type corresponding to the extension
@@ -585,7 +682,7 @@ bool	Request::handleError() {
 	}
 }
 
-std::vector<std::string>	cppSplit(const std::string &str, std::string delimiter) {
+std::vector<std::string> Request::cppSplit(const std::string &str, std::string delimiter) {
 	std::size_t pos;
 	std::size_t last_pos = 0;
 	std::vector<std::string> split_str;
@@ -610,6 +707,21 @@ size_t	Request::dechunkBody() {
 	}
     _body.assign(dechunkedBody.begin(), dechunkedBody.end());
 	return (_body.size() + 4);
+}
+
+void Request::printParamsCont() {
+	if (!_pairsParams.empty()) {
+		std::cout << "Params (pairs): " << std::endl;
+		for (std::map<std::string, std::string>::iterator it = _pairsParams.begin(); it != _pairsParams.end(); it++)
+			std::cout << it->first << ": " << it->second << "   ";
+		std::cout << std::endl;
+	}
+	if (!_singlesParams.empty()) {
+		std::cout << "Params (singles): " << std::endl;
+		for (std::vector<std::string>::iterator it = _singlesParams.begin(); it != _singlesParams.end(); it++)
+			std::cout << *it << "   ";
+		std::cout << std::endl;
+	}
 }
 
 std::string Request::getPath() const { return _path; }

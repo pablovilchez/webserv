@@ -19,8 +19,10 @@ class Request
 		void	handleRequest();
 		void	handleGetMethod(std::string &fileToOpen);
 		void	handlePostMethod();
-		void	processFormData();
+		void	parseParams();
+		void	logParams();
 		void	handleDeleteMethod(std::string &fileToDelete);
+		std::string solveCgi();
 		bool	handleError();
 		static std::string defaultErrorPage(std::string errorCode, std::string errorDescription);
 		std::string	extractPathFromUrl(std::string& url);
@@ -47,8 +49,10 @@ class Request
 		std::string getExtension() const;
 		bool isDirectory(const std::string& path);
 		bool fileOrDirectory(const std::string& path);
+		std::vector<std::string> cppSplit(const std::string &str, std::string delimiter);
 		size_t	dechunkBody();
 		bool	isResponseReady() const;
+		void	printParamsCont();
 
 	private:
 		std::string	_raw;
@@ -68,6 +72,7 @@ class Request
 		std::string	_responseHeader;
 		std::string	_responseBody;
 		std::string	_response; // the whole response from server is saved here !!
+		std::string _cgiResponse;
 		std::string	_redirectionLocation;
 		bool		_done;
 		bool		_isChunked;
@@ -75,6 +80,10 @@ class Request
 		std::string	_servDrive;
 		std::string	_errorLocation;
 		std::map<std::string, std::string> contentTypeExtensions;
+		std::map<std::string, std::string> _pairsParams;
+		std::vector<std::string> _singlesParams;
+		std::string _rawParams;
+		std::string _cgiFile;
 };
 
 #endif
