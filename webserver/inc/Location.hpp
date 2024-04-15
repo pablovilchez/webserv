@@ -24,6 +24,7 @@ class Location
 		std::map<int, std::string> getReturn() const;
 		bool isIndexFile(std::string& fileName) const;
 		bool	getRootLocation() const;
+		std::string getCgiPath(const std::string &extension) const;
 
 	private:
 		std::string							_location;

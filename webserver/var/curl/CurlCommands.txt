@@ -28,6 +28,9 @@ curl -X POST -H "Content-Type: image/x-icon" -F "file=@/Users/$USER/Desktop/favi
 curl -X POST -d "name=def_name&login=def_login&age=def_age" http://drive.localhost:8080/submit
 
 
+curl -X POST -d "12&34" http://cgi.localhost:8080/cgi-bin/calculate_mean.py --output -
+
+
 -- DELETE --
 - to delete a directory (Forbidden):
 curl -X DELETE http://localhost:8080/delete_this
@@ -48,3 +51,4 @@ remove error_page from config and default page will be shown
 
 - to test CGI script:
 curl -X GET http://cgi.localhost:8080/cgi-bin/random_number.py --output -
+

@@ -1,7 +1,0 @@
-Sun Apr 14 13:51:06 2024 => [cgi data] 12   32   43   
-Sun Apr 14 13:53:20 2024 => [cgi data] 12   32   43   
-Sun Apr 14 13:56:06 2024 => [cgi data] 12   32   43   
-Sun Apr 14 16:28:12 2024 => [form data] Name: Pablo   Login: pvilchez   Age: 40
-Sun Apr 14 21:04:14 2024 => [form data] Name: Pablo   Login: pvilchez   Age: 40
-Sun Apr 14 21:35:54 2024 => [form data] Name: Pol   Login: pvilchez   Age: 40
-Sun Apr 14 21:48:11 2024 => [form data] Name: Pol   Login: pvilchez   Age: 40

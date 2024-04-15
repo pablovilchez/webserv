@@ -23,6 +23,7 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	_servDrive = getcwd(buf, sizeof(buf));
 	_errorLocation = "/var/srv_" + _config.getServerName() + "/error";
 	_cgiFile = "";
+	_rawParams = "";
 	handleRequest();
 //	printParamsCont();
 }
@@ -331,12 +332,27 @@ void	Request::handleGetMethod(std::string &fileToOpen) {
 	else { // path is a file
 		if (fileType(_extension)) {
 			if (_contentType.find("application/x") != std::string::npos) {
-				if (_location.getCgiExtension().empty())
-					setStatus("500 Internal Server Error");
-				else {
-					_cgiResponse += solveCgi();
-					setStatus("200 OK");
+				std::string cgiPath;
+				std::cout << "CGI file: " << _cgiFile << std::endl;
+				if (_path.find(".php") != std::string::npos) {
+					cgiPath = _location.getCgiPath("php");
+					if (cgiPath != "") {
+						_cgiResponse += solveCgi(cgiPath);
+						setStatus("200 OK");
+					} else
+						setStatus("404 Not Found");
 				}
+				else if (_path.find(".py") != std::string::npos) {
+					cgiPath = _location.getCgiPath("py");
+					if (cgiPath != "") {
+						_cgiResponse += solveCgi(cgiPath);
+						setStatus("200 OK");
+					}
+					else
+						setStatus("404 Not Found");
+				}
+				else
+					setStatus("404 Not Found");
 			}
 			else
 				setStatus("200 OK");
@@ -357,15 +373,26 @@ void	Request::handlePostMethod(){
 	else if (_raw.find("Content-Type: application/x-www-form-urlencoded") != std::string::npos) {     // Form found
 		size_t	lastSlashPos = _path.find_last_of('/');
 		std::string	_cgiFile = _path.substr(lastSlashPos + 1);
-		if (_cgiFile.find(".php") != std::string::npos || _cgiFile.find(".py") != std::string::npos) {
-			if (_location.getCgiExtension().empty())
-				setStatus("500 Internal Server Error");
-			else {
-				_cgiResponse += solveCgi();
+		std::string cgiPath;
+		if (_cgiFile.find(".php") != std::string::npos) {
+			 cgiPath = _location.getCgiPath("py");
+			if (cgiPath != "") {
+				_cgiResponse += solveCgi(cgiPath);
+				setStatus("200 OK");
+			} else
+				setStatus("404 Not Found");
+		}
+		else if (_cgiFile.find(".py") != std::string::npos) {
+			cgiPath = _location.getCgiPath("py");
+			if (cgiPath != "") {
+				_cgiResponse += solveCgi(cgiPath);
 				setStatus("200 OK");
 			}
+			else
+				setStatus("404 Not Found");
 		}
-		setStatus("200 OK");
+		else
+			setStatus("404 Not Found");
 		_done = true;
 	}
 	else { // handle basic file
@@ -445,17 +472,14 @@ void	Request::handleDeleteMethod(std::string &fileToDelete){
 	_done = true;
 }
 
-std::string	Request::solveCgi() {
+std::string	Request::solveCgi(std::string cgiPath) {
 	std::string response = "";
-	std::string arg = "";
 
-	std::vector<std::string>::iterator it;
-	for (it = _singlesParams.begin(); it != _singlesParams.end(); it++) {
-		arg += *it + "&";
-	}
-	const char *args[] = {fileToOpen.c_str(), fileToOpen.c_str(), arg.c_str(), NULL};
+	const char *args[] = {fileToOpen.c_str(), fileToOpen.c_str(), _rawParams.c_str(), NULL};
 
 	int pipeFd[2];
+
+	std::cout << "CGI path: " << cgiPath << std::endl;
 
 	pipe(pipeFd);
 	pid_t pid = fork();
@@ -463,7 +487,7 @@ std::string	Request::solveCgi() {
 		close(pipeFd[0]);
 		dup2(pipeFd[1], STDOUT_FILENO);
 		close(pipeFd[1]);
-		execve("/usr/bin/python3", const_cast<char *const *>(args), NULL);
+		execve(cgiPath.c_str() , const_cast<char *const *>(args), NULL);
 		std::cerr << "Error of execution." << std::endl;
 		exit(1);
 	}

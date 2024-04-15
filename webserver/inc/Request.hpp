@@ -22,7 +22,7 @@ class Request
 		void	parseParams();
 		void	logParams();
 		void	handleDeleteMethod(std::string &fileToDelete);
-		std::string solveCgi();
+		std::string solveCgi(std::string cgiPath);
 		bool	handleError();
 		static std::string defaultErrorPage(std::string errorCode, std::string errorDescription);
 		std::string	extractPathFromUrl(std::string& url);

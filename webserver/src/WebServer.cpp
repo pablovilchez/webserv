@@ -276,6 +276,7 @@ void WebServer::checkClients() {
 
 						std::istringstream request(buffer);
 						std::string request_line;
+						std::cout << "buffer: " << buffer << std::endl;
 						getline(request, request_line);
 						if (request_line.find("?") != std::string::npos)  // remove params from request
 							request_line = request_line.substr(0, request_line.find("?"));

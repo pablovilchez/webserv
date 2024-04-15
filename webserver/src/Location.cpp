@@ -172,6 +172,14 @@ std::map<std::string, std::string> Location::getCgiExtension() const {
 	return _cgiExtension;
 }
 
+std::string Location::getCgiPath(const std::string &extension) const {
+	std::map<std::string, std::string>::const_iterator it = _cgiExtension.find(extension);
+	if (it != _cgiExtension.end()) {
+		return it->second;
+	}
+	return "";
+}
+
 // Check if the file is in the index set
 bool	Location::isIndexFile(std::string& fileName) const {
 	return _index.find(fileName) != _index.end();
