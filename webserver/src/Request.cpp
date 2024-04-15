@@ -312,7 +312,8 @@ void	Request::handleGetMethod(std::string &fileToOpen) {
 		}
 		else if (!_location.getIndex().empty()) {  // index file found
 			const std::set<std::string>&	indexFiles = _location.getIndex();
-			for (std::set<std::string>::const_iterator it = indexFiles.begin(); it != indexFiles.end(); it++){
+			std::set<std::string>::const_iterator it = indexFiles.begin();
+			while (it != indexFiles.end()) {
 				const std::string&	currIndexFile = *it;
 				if (!fileToOpen.empty() && fileToOpen[fileToOpen.size() - 1] != '/') {
 					fileToOpen += '/';
@@ -322,7 +323,10 @@ void	Request::handleGetMethod(std::string &fileToOpen) {
 					setStatus("200 OK");
 					break ;
 				}
+				it++;
 			}
+			if (it == indexFiles.end())
+				setStatus("404 Not Found");
 		}
 		else if (_location.getDirectoryListing())
 			generateAutoIndex(fileToOpen);
