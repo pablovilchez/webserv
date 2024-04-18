@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config(srv) {
+Request::Request(const std::string &raw, const Server &srv, const Cookie &sessionCookie) : _raw(raw), _config(srv), _cookie(sessionCookie) {
 	_method = "";
 	_path = "";
 	_version = "";
@@ -24,6 +24,7 @@ Request::Request(const std::string &raw, const Server &srv) : _raw(raw), _config
 	_errorLocation = "/var/srv_" + _config.getServerName() + "/error";
 	_cgiFile = "";
 	_rawParams = "";
+	_cookieSessionId = "";
 	handleRequest();
 //	printParamsCont();
 }
@@ -196,7 +197,11 @@ void	Request::buildHeader() {
 	_responseHeader += "Content-Type: " + _contentType + "\r\n";
 	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
 	_responseHeader += "Connection: Keep-Alive\r\n";
-	_responseHeader += "Keep-Alive: timeout=5, max=1000\r\n\r\n";
+	_responseHeader += "Keep-Alive: timeout=5, max=1000\r\n";
+	if (_cookie.getCookieHeader() != "")
+		_responseHeader += _cookie.getCookieHeader();
+	_responseHeader += "\r\n";
+	//printLoginHistory();
 }
 
 void	Request::buildResponse() {
@@ -210,6 +215,14 @@ void	Request::buildResponse() {
 				_responseBody.assign(std::istreambuf_iterator<char>(fileStream), std::istreambuf_iterator<char>());
 				fileStream.close();
 				setExtension(fileToOpen);
+				if (_cookie.getCookieBody() != "" && _extension == (".html")) {
+					std::cout << "HERE" << std::endl;
+					std::size_t pos = _responseBody.find("</body>");
+					if (pos != std::string::npos && _config.getServerName() == "cookie") {
+						std::string loginTimeHTML = _cookie.getCookieBody();
+						_responseBody.insert(pos, loginTimeHTML);
+					}
+				}
 			}
 		}
 		else if (_method == "POST" || _method == "DELETE" || _cgiResponse != "") {

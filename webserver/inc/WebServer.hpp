@@ -4,11 +4,13 @@
 #include "libraries.hpp"
 #include "Server.hpp"
 #include "Request.hpp"
+#include "Cookie.hpp"
 
 #define MAXCLIENTS 150
 
 class Server;
 class Request;
+class Cookie;
 
 class WebServer {
 	public:
@@ -39,7 +41,7 @@ class WebServer {
 		bool 								_running;
 		std::string 						_response;
 		std::map<int, Request>				_clientRequests;
-
+		std::map<std::string, Cookie>		_sessionCookie;
 };
 
 #endif

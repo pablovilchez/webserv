@@ -3,9 +3,11 @@
 
 #include "libraries.hpp"
 #include "WebServer.hpp"
+#include "Cookie.hpp"
 
 class Location;
 class Server;
+class Cookie;
 
 class Request
 {
@@ -13,7 +15,7 @@ class Request
 		/* Request();
 		Request(const Request& other);
 		Request& operator=(const Request& other); */
-		Request(const std::string &raw, const Server &srv);
+		Request(const std::string &raw, const Server &srv, const Cookie &sessionCookie);
 		~Request();
 
 		void	handleRequest();
@@ -54,6 +56,8 @@ class Request
 		bool	isResponseReady() const;
 		void	printParamsCont();
 
+		void printLoginHistory();
+
 	private:
 		std::string	_raw;
 		std::string	_method;
@@ -84,6 +88,11 @@ class Request
 		std::vector<std::string> _singlesParams;
 		std::string _rawParams;
 		std::string _cgiFile;
+
+		Cookie	_cookie;
+
+		std::string	_cookieSessionId;
+
 };
 
 #endif

@@ -250,6 +250,17 @@ void WebServer::checkServes() {
 	_pollSize = _poll_fds.size();
 }
 
+std::string	extractSessionId(const char *requestBuffer, int bytesReceived) {
+	std::string receivedData(requestBuffer, bytesReceived);
+	size_t idPos = receivedData.find("session_id=");
+	std::string	id;
+	if (idPos != std::string::npos)
+		id = receivedData.substr(idPos + 11, 6);
+	else
+		id = "42";
+	return (id);
+}
+
 void WebServer::checkClients() {
 	char buffer[1024];
 	memset(buffer, 0, 1024);
@@ -276,16 +287,37 @@ void WebServer::checkClients() {
 
 						std::istringstream request(buffer);
 						std::string request_line;
-						std::cout << "buffer: " << buffer << std::endl;
 						getline(request, request_line);
 						if (request_line.find("?") != std::string::npos)  // remove params from request
 							request_line = request_line.substr(0, request_line.find("?"));
 						std::cout << YELLOW_TEXT << "REQUEST: \n" << request_line << RESET_COLOR << std::endl;
 
 						Server server = getServerConfig(buffer);
-						Request newRequest(buffer, server);
-						memset(buffer, 0, 1024);
-						_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
+
+						std::string sessionId = extractSessionId(buffer, bytes);
+						
+						std::map<std::string, Cookie>::iterator it_cookie = _sessionCookie.find(sessionId);
+						if (sessionId == "42") {
+							if (!_sessionCookie.empty()) {
+								for (std::map<std::string, Cookie>::iterator it = _sessionCookie.begin(); it != _sessionCookie.end();) {
+									if (it->second.isExpired()) {
+										_sessionCookie.erase(it++);
+									} else {
+										++it;
+									}
+								}
+							}
+							Cookie cookie;
+							_sessionCookie.insert(std::make_pair(cookie.getCookieId(), cookie));
+							Request newRequest(buffer, server, cookie);
+							_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
+						}
+						else {
+							it_cookie->second.checkCookieExpiry(buffer);
+							Request newRequest(buffer, server, it_cookie->second);
+							_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
+						}
+							memset(buffer, 0, 1024);
 					}
 					for (std::map<int, Request>::iterator it_req = _clientRequests.begin(); it_req != _clientRequests.end(); ++it_req) {
 						if (_poll_fds[it].fd == it_req->first && it_req->second.isResponseReady()) {
