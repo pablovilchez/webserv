@@ -12,10 +12,9 @@ class Cookie;
 class Request
 {
 	public:
-		/* Request();
-		Request(const Request& other);
-		Request& operator=(const Request& other); */
 		Request(const std::string &raw, const Server &srv, const Cookie &sessionCookie);
+		Request();
+		Request(const Request& other);
 		~Request();
 
 		void	handleRequest();
