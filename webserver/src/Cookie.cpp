@@ -2,7 +2,7 @@
 
 Cookie::Cookie() {
 	_cookieSessionId = generateRandomString(6);
-	_firstAccessTime = std::time(nullptr);
+	_firstAccessTime = std::time(NULL);
 	_cookieMaxAge = MAXAGE;
 	_lastEntry = _firstAccessTime;
 	_expired = false;
@@ -35,7 +35,7 @@ std::string	Cookie::generateRandomString(int length) {
 }
 
 void	Cookie::checkCookieExpiry(const char *requestBuffer) {
-	std::time_t	currTime = std::time(nullptr);
+	std::time_t	currTime = std::time(NULL);
 
 	std::string receivedData(requestBuffer);
 	size_t idPos = receivedData.find("Sec-Fetch-Dest: document");
@@ -57,7 +57,7 @@ void	Cookie::checkCookieExpiry(const char *requestBuffer) {
 }
 
 void	Cookie::generateTimeStamp() {
-	std::time_t	currTime = std::time(nullptr);
+	std::time_t	currTime = std::time(NULL);
 	std::string	formattedTime = formatTime(currTime);
 
 	if (_loginHistory.empty()) {

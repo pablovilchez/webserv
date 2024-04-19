@@ -26,10 +26,14 @@ Request::Request(const std::string &raw, const Server &srv, const Cookie &sessio
 	_rawParams = "";
 	_cookieSessionId = "";
 	handleRequest();
-//	printParamsCont();
-}
+};
 
-Request::~Request() { }
+Request::Request() {};
+
+Request::Request(Request const& other) {
+	*this = other;
+};
+Request::~Request() {};
 
 std::string Request::getRaw() const
 {
@@ -107,7 +111,7 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	}
 }
 
-void Request::parseHeader()	
+void Request::parseHeader()
 {
 	size_t	pos = 0;
 	size_t	end = _raw.find("\r\n");
@@ -533,8 +537,8 @@ std::string	Request::extractPathFromUrl(std::string& url) {
 			return (_servDrive + _location.getRoot() + path);
 	}
 	return (_servDrive + _location.getRoot());
-/* 	
-	
+/*
+
 	if (secondSlashPos == std::string::npos && url.find(".") == std::string::npos) // only directory
 		return (_servDrive + _location.getRoot());
 	return (_servDrive + _location.getRoot()); */
