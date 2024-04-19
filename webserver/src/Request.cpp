@@ -36,7 +36,7 @@ std::string Request::getRaw() const
 	return _raw;
 }
 
-bool	Request::captureFileName(std::string receivedData) {
+void	Request::captureFileName(std::string receivedData) {
 	size_t filenamePos = receivedData.find("filename=");
 	if (filenamePos != std::string::npos) {
 		size_t quoteStart = receivedData.find("\"", filenamePos);
@@ -54,9 +54,9 @@ bool	Request::captureFileName(std::string receivedData) {
 				_contentType = receivedData.substr(contTypePos + 14, contTypeEndPos - contTypePos - 14);
 			}
 		}
-		return true;
 	}
-	return false;
+	else
+		_fileName = "default";
 }
 
 void	Request::parseBody(const char *buf, int bytesReceived) {
@@ -73,7 +73,8 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	} */
 	if (_body.empty())
 		_body.reserve(_contentLength);
-	if ((i == 0 && boundaryPos != std::string::npos && captureFileName(receivedData)) || _isChunked) {
+	captureFileName(receivedData);
+	if ((i == 0 && boundaryPos != std::string::npos) || _isChunked) {
 		_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
 		i = 1;
 	} else if (i == 1)
@@ -84,10 +85,10 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		endPos = bodyString.find(_boundary + "--");
 	else if (bodyString.find("0\r\n\r\n") != std::string::npos)
 		endPos = bodyString.find("0\r\n\r\n");
+	else if (_body.size() == (unsigned long)_contentLength)
+		endPos = _contentLength + 4;
 	if (endPos != 0) {
 		if (fileExtension(_contentType)) {
-			if (_fileName == "")
-				_fileName = "default";
 			std::string	saveFileIn = _servDrive + _location.getRoot() + "/" + _fileName;
 			std::cout << "Saving file to: " << saveFileIn << std::endl;
 			std::ofstream outputFile(saveFileIn.c_str(), std::ios::binary);
@@ -565,6 +566,7 @@ bool	Request::fileExtension(const std::string& contentType) {
 	contentTypeExtensions.insert(std::make_pair("image/png", ".png"));
 	contentTypeExtensions.insert(std::make_pair("image/gif", ".gif"));
 	contentTypeExtensions.insert(std::make_pair("text/plain", ".txt"));
+	contentTypeExtensions.insert(std::make_pair("plain/text", ".txt"));
 	contentTypeExtensions.insert(std::make_pair("text/html", ".html"));
 	contentTypeExtensions.insert(std::make_pair("text/css", ".css"));
 	contentTypeExtensions.insert(std::make_pair("application/json", ".json"));

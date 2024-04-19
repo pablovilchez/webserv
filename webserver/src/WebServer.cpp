@@ -269,6 +269,7 @@ void WebServer::checkClients() {
 	while (it < _pollSize) {
 		if (_poll_fds[it].revents & POLLIN && _poll_fds[it].fd != -1) {
 			int bytes = recv(_poll_fds[it].fd, buffer, 1024, 0);
+			std::cout <<"buffer: " << buffer << std::endl;
 				if (bytes == -1) {
 					std::cout << RED_TEXT << "ERROR (recv): Client disconnected: " << _poll_fds[it].fd << RESET_COLOR << std::endl;
 					close(_poll_fds[it].fd);
@@ -330,9 +331,13 @@ void WebServer::checkClients() {
 				}
 		}
 		else if (_poll_fds[it].revents & POLLOUT && _poll_fds[it].fd != -1) {
-			send(_poll_fds[it].fd, _response.c_str(), _response.size(), 0);
-			_poll_fds[it].events = POLLIN;
-			_response.clear();
+			int bytes = send(_poll_fds[it].fd, _response.c_str(), _response.size(), 0);
+			if (bytes == -1)
+				_poll_fds[it].fd = -1;
+			else {
+				_poll_fds[it].events = POLLIN;
+				_response.clear();
+			}
 		}
 		else if ((_poll_fds[it].revents & POLLERR || _poll_fds[it].revents & POLLHUP) && _poll_fds[it].fd != -1) {
 			if (_poll_fds[it].revents & POLLERR) {
