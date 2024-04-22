@@ -32,11 +32,6 @@ int createNewListener(int port , std::vector<Server> servers) {
 		_exit(1);
 	}
 
-	if (setsockopt(listening, SOL_SOCKET, SO_BROADCAST,  &yes, sizeof(int)) == -1) {
-		perror("setsockopt failed");
-		_exit(1);
-	}
-
 	struct sockaddr_in server_addr;
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(port);
@@ -210,14 +205,19 @@ void WebServer::createNewClient(int it_listen) {
 
 	int client_sock = accept(it_listen, reinterpret_cast<sockaddr*>(&client), &addr_size);
 
+	int yes = 1;
+	if (setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(int)) == -1) {
+		perror("setsockopt failed");
+		_exit(1);
+	}
+
 	if (client_sock == -1) {
 		perror("Can't accept client");
 		return ;
 	}
-	if ((_pollSize - _listSize) < MAXCLIENTS) {
+	if ((_poll_fds.size() - _listSize) < MAXCLIENTS) {
 		insertNewPollfd(_poll_fds, client_sock);
-		_pollSize = _poll_fds.size();
-		std::cout << GREEN_TEXT << "New client connected: " << client_sock << std::endl;
+		std::cout << GREEN_TEXT << "New client connected: " << client_sock << RESET_COLOR << std::endl;
 	}
 	else {
 		std::string page = Request::defaultErrorPage("503", "Service Unavailable");
@@ -247,113 +247,106 @@ void WebServer::checkServes() {
 		}
 		it++;
 	}
-	_pollSize = _poll_fds.size();
 }
 
 std::string	extractSessionId(const char *requestBuffer, int bytesReceived) {
 	std::string receivedData(requestBuffer, bytesReceived);
 	size_t idPos = receivedData.find("session_id=");
 	std::string	id;
-	if (idPos != std::string::npos)
+	if (idPos != std::string::npos) {
 		id = receivedData.substr(idPos + 11, 6);
-	else
+	}
+	else {
 		id = "42";
+	}
 	return (id);
 }
 
-/* void	WebServer::cleanupExpiredSessions() {
-	std::time_t currTime = std::time(NULL);
-	std::map<std::string, Cookie>::iterator it = _sessionCookie.begin();
-
-	while (it != _sessionCookie.end()) {
-		if ((currTime - it->second.getFirstAccessTime()) + 1 > it->second.getCookieMaxAge()) {
-			_sessionCookie.erase(it++);
-			std::cout << "ERASED " << it->first << std::endl;
-		} else {
-			++it;
-		}
-	}
-}
- */
 void WebServer::checkClients() {
 	char buffer[1024];
 	memset(buffer, 0, 1024);
-	std::vector<pollfd>::iterator fd_it;
-	size_t it = _listSize;
-	while (it < _pollSize) {
-		if (_poll_fds[it].revents & POLLIN && _poll_fds[it].fd != -1) {
-			int bytes = recv(_poll_fds[it].fd, buffer, 1024, 0);
-			std::cout <<"buffer: " << buffer << std::endl;
+
+	std::vector<pollfd>::iterator it = _poll_fds.begin() + _listSize;
+	while (it != _poll_fds.end()) {
+		if (it->revents & POLLIN) {
+			int bytes = recv(it->fd, buffer, 1024, 0);
+			if (bytes <= 0) {
 				if (bytes == -1) {
-					std::cout << RED_TEXT << "ERROR (recv): Client disconnected: " << _poll_fds[it].fd << RESET_COLOR << std::endl;
-					close(_poll_fds[it].fd);
-					_poll_fds[it].fd = -1;
+					std::cerr << RED_TEXT << "ERROR (recv): Client disconnected: " << it->fd << RESET_COLOR << std::endl;
 				}
 				else if (bytes == 0) {
-					std::cout << RED_TEXT << "OK: Client disconnected: " << _poll_fds[it].fd << RESET_COLOR << std::endl;
-					close(_poll_fds[it].fd);
-					_poll_fds[it].fd = -1;
+					std::cout << RED_TEXT << "OK: Client disconnected: " << it->fd << RESET_COLOR << std::endl;
 				}
-				else if (bytes > 0) {
-					std::map<int, Request>::iterator it_req = _clientRequests.find(_poll_fds[it].fd);
-					if (it_req != _clientRequests.end()) {
-						it_req->second.parseBody(buffer, bytes);
-					} else {
-
-						std::istringstream request(buffer);
-						std::string request_line;
-						getline(request, request_line);
-						if (request_line.find("?") != std::string::npos)  // remove params from request
-							request_line = request_line.substr(0, request_line.find("?"));
-						std::cout << YELLOW_TEXT << "REQUEST: \n" << request_line << RESET_COLOR << std::endl;
-
-						Server server = getServerConfig(buffer);
-
-						std::string sessionId = extractSessionId(buffer, bytes);
-						
-						std::map<std::string, Cookie>::iterator it_cookie = _sessionCookie.find(sessionId);
-						if (sessionId == "42") {
-							Cookie cookie;
-							_sessionCookie.insert(std::make_pair(cookie.getCookieId(), cookie));
-							Request newRequest(buffer, server, cookie);
-							_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
-						}
-						else {
-							//if (it_cookie != _sessionCookie.end())
-							it_cookie->second.checkCookieExpiry(buffer);
-							Request newRequest(buffer, server, it_cookie->second);
-							_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
-						}
-							memset(buffer, 0, 1024);
+				close(it->fd);
+				it = _poll_fds.erase(it);
+				continue;
+			}
+			else if (bytes > 0) {
+				std::map<int, Request>::iterator it_req = _clientRequests.find(it->fd);
+				if (it_req != _clientRequests.end()) {
+					it_req->second.parseBody(buffer, bytes);
+				}
+				else {
+					std::istringstream request(buffer);
+					std::string request_line;
+					getline(request, request_line);
+					if (request_line.find("?") != std::string::npos) {
+						request_line = request_line.substr(0, request_line.find("?"));
 					}
-					for (std::map<int, Request>::iterator it_req = _clientRequests.begin(); it_req != _clientRequests.end(); ++it_req) {
-						if (_poll_fds[it].fd == it_req->first && it_req->second.isResponseReady()) {
-							_response = it_req->second.getResponse();
-							_clientRequests.erase(it_req);
-							_poll_fds[it].events = POLLOUT;
-							break;
-						}
+
+					Server server = getServerConfig(buffer);
+
+					std::string sessionId = extractSessionId(buffer, bytes);
+
+					std::map<std::string, Cookie>::iterator it_cookie = _sessionCookie.find(sessionId);
+					if (sessionId == "42") {
+						Cookie cookie;
+						_sessionCookie.insert(std::make_pair(cookie.getCookieId(), cookie));
+						Request newRequest(buffer, server, cookie);
+						_clientRequests.insert(std::make_pair(it->fd, newRequest));
+					}
+					else {
+						it_cookie->second.checkCookieExpiry(buffer);
+						/*
+							PABLO ERROR AQUI
+						*/
+						Request newRequest(buffer, server, it_cookie->second);
+						_clientRequests.insert(std::make_pair(it->fd, newRequest));
+					}
+					memset(buffer, 0, 1024);
+				}
+				for (std::map<int, Request>::iterator it_req = _clientRequests.begin(); it_req != _clientRequests.end(); ++it_req) {
+					if (it->fd == it_req->first && it_req->second.isResponseReady()) {
+						_response = it_req->second.getResponse();
+						_clientRequests.erase(it_req);
+						it->events = POLLOUT;
+						break;
 					}
 				}
+			}
 		}
-		else if (_poll_fds[it].revents & POLLOUT && _poll_fds[it].fd != -1) {
-			int bytes = send(_poll_fds[it].fd, _response.c_str(), _response.size(), 0);
-			if (bytes == -1)
-				_poll_fds[it].fd = -1;
+		if (it->revents & POLLOUT) {
+			int bytes = send(it->fd, _response.c_str(), _response.size(), 0);
+			if (bytes == -1) {
+				close(it->fd);
+				it = _poll_fds.erase(it);
+				continue;
+			}
 			else {
-				_poll_fds[it].events = POLLIN;
+				it->events = POLLIN;
 				_response.clear();
 			}
 		}
-		else if ((_poll_fds[it].revents & POLLERR || _poll_fds[it].revents & POLLHUP) && _poll_fds[it].fd != -1) {
-			if (_poll_fds[it].revents & POLLERR) {
-				std::cout << RED_TEXT << "ERROR (POLLERR): Client disconnected: " << _poll_fds[it].fd << RESET_COLOR << std::endl;
+		if (it->revents & ( POLLERR | POLLHUP)) {
+			if (it->revents & POLLERR) {
+				std::cerr << RED_TEXT << "ERROR (POLLERR): Client disconnected: " << it->fd << RESET_COLOR << std::endl;
 			}
 			else {
-				std::cout << RED_TEXT << "OK (POLLHUP): Client disconnected: " << _poll_fds[it].fd << RESET_COLOR << std::endl;
+				std::cout << RED_TEXT << "OK (POLLHUP): Client disconnected: " << it->fd << RESET_COLOR << std::endl;
 			}
-			close(_poll_fds[it].fd);
-			_poll_fds[it].fd = -1;
+			close(it->fd);
+			it = _poll_fds.erase(it);
+			continue;
 		}
 		it++;
 	}
@@ -365,25 +358,16 @@ void WebServer::initService() {
 	_listSize = _listeners.size();
 
 	while (_running) {
-		_pollSize = _poll_fds.size();
-
 		int ret = poll(reinterpret_cast<pollfd *>(&_poll_fds[0]), static_cast<unsigned int>(_poll_fds.size()), -1);
 		if (ret == -1) {
-			std::cout << RED_TEXT << "ERROR (poll): Server is shutting down"<< RESET_COLOR << std::endl;
+			std::cerr << RED_TEXT << "ERROR (poll): Server is shutting down"<< RESET_COLOR << std::endl;
 			_running = false;
 		}
 
 		checkServes();
 		checkClients();
 
-		std::vector<pollfd>::iterator it = _poll_fds.begin();
-		while (it != _poll_fds.end()) {
-			if (it->fd == -1) {
-				it = _poll_fds.erase(it);
-			} else {
-				++it;
-			}
-		}
+		usleep(10000);
 	}
 }
 

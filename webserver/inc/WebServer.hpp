@@ -26,7 +26,7 @@ class WebServer {
 		const Server &getServerConfig(char *buffer);
 		bool correctConfig() const;
 		bool continueServer(char *buffer);
-		
+
 		void checkServes();
 		void checkClients();
 
@@ -35,7 +35,6 @@ class WebServer {
 	private:
 		std::vector<Server>	                _servers;
 		std::vector<pollfd>			        _poll_fds;
-		size_t 								_pollSize;
 		std::vector<int>			        _listeners;
 		size_t							    _listSize;
 		std::map<int, std::vector<Server> > _portsMap;
