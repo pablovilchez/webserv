@@ -261,6 +261,20 @@ std::string	extractSessionId(const char *requestBuffer, int bytesReceived) {
 	return (id);
 }
 
+/* void	WebServer::cleanupExpiredSessions() {
+	std::time_t currTime = std::time(NULL);
+	std::map<std::string, Cookie>::iterator it = _sessionCookie.begin();
+
+	while (it != _sessionCookie.end()) {
+		if ((currTime - it->second.getFirstAccessTime()) + 1 > it->second.getCookieMaxAge()) {
+			_sessionCookie.erase(it++);
+			std::cout << "ERASED " << it->first << std::endl;
+		} else {
+			++it;
+		}
+	}
+}
+ */
 void WebServer::checkClients() {
 	char buffer[1024];
 	memset(buffer, 0, 1024);
@@ -299,21 +313,13 @@ void WebServer::checkClients() {
 						
 						std::map<std::string, Cookie>::iterator it_cookie = _sessionCookie.find(sessionId);
 						if (sessionId == "42") {
-							if (!_sessionCookie.empty()) {
-								for (std::map<std::string, Cookie>::iterator it = _sessionCookie.begin(); it != _sessionCookie.end();) {
-									if (it->second.isExpired()) {
-										_sessionCookie.erase(it++);
-									} else {
-										++it;
-									}
-								}
-							}
 							Cookie cookie;
 							_sessionCookie.insert(std::make_pair(cookie.getCookieId(), cookie));
 							Request newRequest(buffer, server, cookie);
 							_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));
 						}
 						else {
+							//if (it_cookie != _sessionCookie.end())
 							it_cookie->second.checkCookieExpiry(buffer);
 							Request newRequest(buffer, server, it_cookie->second);
 							_clientRequests.insert(std::make_pair(_poll_fds[it].fd, newRequest));

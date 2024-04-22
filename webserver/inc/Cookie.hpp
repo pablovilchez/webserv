@@ -18,6 +18,8 @@ class Cookie {
 		std::string	getCookieId() const;
 		std::string	setCookieHeader();
 		bool	isExpired() const;
+		int		getFirstAccessTime() const;
+		int		getCookieMaxAge() const;
 	private:
 		int			_cookieMaxAge;
 		std::string	_cookieSessionId;
@@ -25,7 +27,6 @@ class Cookie {
 		int			_lastEntry;
 		std::vector<std::string> _loginHistory;
 		std::string	_cookieHeader;
-		bool		_expired;
 };
 
 #endif

@@ -3,11 +3,16 @@
 
 
 -- POST --
+
+- to upload a simple text
+curl -X POST -H "Content-Type: plain/text" --data "BODY" localhost:8080
+
 - to upload a photo:
 curl -X POST -H "Content-Type: image/jpg" -F "file=@/Users/$USER/Desktop/photo.jpg" localhost:8080
 
 - to upload a text file:
-curl -X POST -H "Content-Type: text/plain" -F "cxhgchg
+curl -X POST -H "Content-Type: text/plain" -F "file=@/Users/$USER/Desktop/text.txt localhost:8080
+
 - to upload a PDF file:
 curl -X POST -F "file=@/Users/$USER/Desktop/file.pdf" http://localhost:8080
 

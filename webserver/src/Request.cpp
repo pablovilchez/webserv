@@ -94,7 +94,6 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 	if (endPos != 0) {
 		if (fileExtension(_contentType)) {
 			std::string	saveFileIn = _servDrive + _location.getRoot() + "/" + _fileName;
-			std::cout << "Saving file to: " << saveFileIn << std::endl;
 			std::ofstream outputFile(saveFileIn.c_str(), std::ios::binary);
 			if (_isChunked)
 				endPos = dechunkBody();
@@ -202,7 +201,8 @@ void	Request::buildHeader() {
 	_responseHeader += "Content-Type: " + _contentType + "\r\n";
 	_responseHeader += "Content-Length: " + contLenStr.str() + "\r\n";
 	_responseHeader += "Connection: Keep-Alive\r\n";
-	_responseHeader += "Keep-Alive: timeout=5, max=1000\r\n";
+	_responseHeader += "Keep-Alive: timeout=5, max=100\r\n";
+/* 	_responseHeader += "Connection: Close\r\n"; */
 	if (_cookie.getCookieHeader() != "")
 		_responseHeader += _cookie.getCookieHeader();
 	_responseHeader += "\r\n";
@@ -317,7 +317,7 @@ void	Request::generateAutoIndex(std::string &uri) {
  */
 
 void	Request::handleGetMethod(std::string &fileToOpen) {
-	if (_rawParams != "")
+	if (_rawParams != "" && _config.getServerName() == "cgi")
 		parseParams();
 
 	if (fileOrDirectory(fileToOpen)) { // path is a directory
@@ -385,7 +385,7 @@ void	Request::handleGetMethod(std::string &fileToOpen) {
 
 void	Request::handlePostMethod(){
 	_rawParams = _raw.substr(_raw.find("\r\n\r\n") + 4);
-	if (_rawParams != "")
+	if (_rawParams != "" && _config.getServerName() == "cgi")
 		parseParams();
 
 	if (!_location.isAcceptedMethod("POST"))

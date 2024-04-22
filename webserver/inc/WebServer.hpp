@@ -26,9 +26,11 @@ class WebServer {
 		const Server &getServerConfig(char *buffer);
 		bool correctConfig() const;
 		bool continueServer(char *buffer);
-
+		
 		void checkServes();
 		void checkClients();
+
+		void	cleanupExpiredSessions();
 
 	private:
 		std::vector<Server>	                _servers;
