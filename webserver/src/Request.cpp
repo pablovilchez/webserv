@@ -385,8 +385,7 @@ void	Request::handleGetMethod(std::string &fileToOpen) {
 
 void	Request::handlePostMethod(){
 	_rawParams = _raw.substr(_raw.find("\r\n\r\n") + 4);
-	if (_rawParams != "" && _config.getServerName() == "cgi")
-		parseParams();
+	parseParams();
 
 	if (!_location.isAcceptedMethod("POST"))
 		setStatus("403 Forbiden");
@@ -394,27 +393,28 @@ void	Request::handlePostMethod(){
 		setStatus("413 Request Entity Too Large");
 	else if (_raw.find("Content-Type: application/x-www-form-urlencoded") != std::string::npos) {     // Form found
 		size_t	lastSlashPos = _path.find_last_of('/');
-		std::string	_cgiFile = _path.substr(lastSlashPos + 1);
-		std::string cgiPath;
-		if (_cgiFile.find(".php") != std::string::npos) {
-			 cgiPath = _location.getCgiPath("py");
-			if (cgiPath != "") {
-				_cgiResponse += solveCgi(cgiPath);
+		std::string	_requestedFile = _path.substr(lastSlashPos + 1);
+		std::string filePath;
+		if (_requestedFile.find(".php") != std::string::npos) {
+			 filePath = _location.getCgiPath("py");
+			if (filePath != "") {
+				_cgiResponse += solveCgi(filePath);
 				setStatus("200 OK");
 			} else
 				setStatus("404 Not Found");
 		}
-		else if (_cgiFile.find(".py") != std::string::npos) {
-			cgiPath = _location.getCgiPath("py");
-			if (cgiPath != "") {
-				_cgiResponse += solveCgi(cgiPath);
+		else if (_requestedFile.find(".py") != std::string::npos) {
+			filePath = _location.getCgiPath("py");
+			if (filePath != "") {
+				_cgiResponse += solveCgi(filePath);
 				setStatus("200 OK");
 			}
 			else
 				setStatus("404 Not Found");
 		}
-		else
+		else {
 			setStatus("404 Not Found");
+		}
 		_done = true;
 	}
 	else { // handle basic file
@@ -442,30 +442,13 @@ void	Request::parseParams() {
 }
 
 void	Request::logParams() {
+	std::cout << "path: " << _path << std::endl;
 	std::string fileName("var/srv_" + _config.getServerName() + "/submit/submits.txt");
 	std::string fileToUpload(_raw.begin() + _raw.find("name=") + 6, _raw.end());
 	std::ofstream file(fileName.c_str(), std::ios::app);
 
 	if (file.is_open()) {
-		time_t now = time(0);
-		char dt[30];
-		ctime_r(&now, dt);
-		dt[strlen(dt) - 1] = '\0';
-		file << dt << " => ";
-		if (_pairsParams.size() > 0) {
-			file << "[form data] ";
-			file << "Name: " << _pairsParams["name"] << "   ";
-			file << "Login: " << _pairsParams["login"] << "   ";
-			file << "Age: " << _pairsParams["age"] << "\n";
-		}
-		else {
-			std::vector<std::string>::iterator it;
-			file << "[cgi data] ";
-			for (it = _singlesParams.begin(); it != _singlesParams.end(); it++) {
-				file << *it << "   ";
-			}
-			file << "\n";
-		}
+		file << _rawParams << std::endl;
 		file.close();
 	}
 	else
