@@ -205,12 +205,6 @@ void WebServer::createNewClient(int it_listen) {
 
 	int client_sock = accept(it_listen, reinterpret_cast<sockaddr*>(&client), &addr_size);
 
-	int yes = 1;
-	if (setsockopt(client_sock, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(int)) == -1) {
-		perror("setsockopt failed");
-		_exit(1);
-	}
-
 	if (client_sock == -1) {
 		perror("Can't accept client");
 		return ;
@@ -299,7 +293,7 @@ void WebServer::checkClients() {
 					std::string sessionId = extractSessionId(buffer, bytes);
 
 					std::map<std::string, Cookie>::iterator it_cookie = _sessionCookie.find(sessionId);
-					if (sessionId == "42") {
+					if (sessionId == "42" || it_cookie == _sessionCookie.end()) {
 						Cookie cookie;
 						_sessionCookie.insert(std::make_pair(cookie.getCookieId(), cookie));
 						Request newRequest(buffer, server, cookie);
@@ -307,9 +301,6 @@ void WebServer::checkClients() {
 					}
 					else {
 						it_cookie->second.checkCookieExpiry(buffer);
-						/*
-							PABLO ERROR AQUI
-						*/
 						Request newRequest(buffer, server, it_cookie->second);
 						_clientRequests.insert(std::make_pair(it->fd, newRequest));
 					}
