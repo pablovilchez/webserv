@@ -5,32 +5,28 @@
 -- POST --
 
 - to upload a simple text
-curl -X POST -H "Content-Type: plain/text" --data "BODY" localhost:8080
+curl -X POST -H "Content-Type: plain/text" --data "BODY" localhost:8080/upload
 
 - to upload a photo:
-curl -X POST -H "Content-Type: image/jpg" -F "file=@/Users/$USER/Desktop/photo.jpg" localhost:8080
+curl -X POST -H "Content-Type: image/jpg" -F "file=@/Users/$USER/Desktop/image.jpg" localhost:8080/upload
 
 - to upload a text file:
-curl -X POST -H "Content-Type: text/plain" -F "file=@/Users/$USER/Desktop/text.txt localhost:8080
+curl -X POST -H "Content-Type: text/plain" -F "file=@/Users/$USER/Desktop/text.txt" localhost:8080/upload
 
 - to upload a PDF file:
-curl -X POST -F "file=@/Users/$USER/Desktop/file.pdf" http://localhost:8080
+curl -X POST -F "file=@/Users/$USER/Desktop/file.pdf" http://localhost:8080/upload
 
 - to upload a HTML file:
-curl -X POST -H "Content-Type: text/html" -F "file=@/Users/$USER/Desktop/data3.html" http://localhost:8080
+curl -X POST -H "Content-Type: text/html" -F "file=@/Users/$USER/Desktop/code.html" http://localhost:8080/upload
 
 - to upload a JSON data:
-curl -X POST http://localhost:8080 \
+curl -X POST    http://localhost:8080/upload \
   -H 'Content-Type: application/json' \
   -H 'Transfer-Encoding: chunked' \
   -d $'7\r\n{"key":\r\n5\r\n"value"}\r\n0\r\n'
 
-- to upload an icon file: (not working for now)
-curl -X POST -H "Content-Type: image/x-icon" -F "file=@/Users/$USER/Desktop/favicion.ico" http://localhost:8080
-
 - to send a POST request with form data:
 curl -X POST -d "name=def_name&login=def_login&age=def_age" http://drive.localhost:8080/submit
-
 
 curl -X POST -d "12&34" http://cgi.localhost:8080/cgi-bin/calculate_mean.py --output -
 
@@ -45,7 +41,8 @@ curl -X DELETE http://localhost:8080/photo.jpg
 
 -- GET --
 - to reach a website:
-curl -X GET http://localhost:8080/www/index.html
+curl -X GET http://localhost:8080/www/index.html  <== (file)
+curl -X GET http://localhost:8080/  <== (directroy)
 
 - to test error page:
 curl -X GET http://localhost:8080/default/notexisting.html

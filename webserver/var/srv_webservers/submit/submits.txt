@@ -1,4 +1,0 @@
-name=def_name&login=def_login&age=def_age
-name=def_name&login=def_login&age=def_age
-Pablo
-Pablo
