@@ -98,7 +98,11 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 		_body.reserve(_contentLength);
 	if ((i < 2 && boundaryPos != std::string::npos) || _isChunked) {
 		captureFileName(receivedData);
-		_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
+		size_t	secondBoundaryPos = receivedData.find(boundary, boundaryPos + 10);
+		if (secondBoundaryPos != std::string::npos && !_isChunked)
+			_body.insert(_body.end(), receivedData.begin() + secondBoundaryPos + boundary.size(), receivedData.end());
+		else
+			_body.insert(_body.end(), receivedData.begin() + boundaryPos + boundary.size(), receivedData.end());
 		i++;
 	} else
 		_body.insert(_body.end(), buf, buf + bytesReceived);
