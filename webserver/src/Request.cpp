@@ -106,10 +106,10 @@ void	Request::parseBody(const char *buf, int bytesReceived) {
 
 	if (bodyString.find(_boundary + "--") != std::string::npos)
 		endPos = bodyString.find(_boundary + "--");
-/* 	else if (bodyString.find("0\r\n\r\n") != std::string::npos)
-		endPos = bodyString.find("0\r\n\r\n"); */
-/* 	else if (_body.size() == (unsigned long)_contentLength)
-		endPos = _contentLength + 4; */
+	else if (bodyString.find("0\r\n\r\n") != std::string::npos)
+		endPos = bodyString.find("0\r\n\r\n");
+	else if (_body.size() == (unsigned long)_contentLength)
+		endPos = _contentLength + 4;
 	if (endPos != 0) {
 		if (fileExtension(_contentType)) {
 			std::string	saveFileIn = _servDrive + _location.getRoot() + "/" + _fileName;
@@ -392,8 +392,9 @@ void	Request::handlePostMethod(){
 			if (filePath != "") {
 				_cgiResponse += solveCgi(filePath);
 				setStatus("200 OK");
-			} else
+			} else {
 				setStatus("404 Not Found");
+			}
 		}
 		else if (_requestedFile.find(".py") != std::string::npos) {
 			filePath = _location.getCgiPath("py");
@@ -401,8 +402,13 @@ void	Request::handlePostMethod(){
 				_cgiResponse += solveCgi(filePath);
 				setStatus("200 OK");
 			}
-			else
+			else{
 				setStatus("404 Not Found");
+			}
+		}
+		else if (_requestedFile.find("submit") != std::string::npos) {
+			logParams();
+			setStatus("200 OK");
 		}
 		else {
 			setStatus("404 Not Found");
