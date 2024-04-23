@@ -3,6 +3,11 @@
 
 /*______________________________UTILS-FUNCTIONS-START______________________________*/
 
+void my_usleep(unsigned long usec) {
+    clock_t goal = usec + clock();
+    while (goal > clock());
+}
+
 bool web_isComment(const std::string &line) {
 	for (size_t i = 0; i < line.length(); i++) {
 		if (!std::isspace(line[i])) {
@@ -22,13 +27,13 @@ void insertNewPollfd(std::vector<pollfd> &_poll_fds, int socket) {
 int createNewListener(int port , std::vector<Server> servers) {
 	int listening = socket(PF_INET, SOCK_STREAM, 0);
 	if (listening == -1) {
-		perror("Can't create a socket");
+		std::cerr << RED_TEXT << "ERROR (socket): Can't create a socket"<< RESET_COLOR << std::endl;
 		_exit(1);
 	}
 
 	int yes = 1;
 	if (setsockopt(listening, SOL_SOCKET, SO_REUSEADDR,  &yes, sizeof(int)) == -1) {
-		perror("setsockopt failed");
+		std::cerr << RED_TEXT << "ERROR (setsockopt): Failure"<< RESET_COLOR << std::endl;
 		_exit(1);
 	}
 
@@ -39,12 +44,12 @@ int createNewListener(int port , std::vector<Server> servers) {
 	memset(&(server_addr.sin_zero), '\0', 8);
 
 	if(bind(listening, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == -1) {
-		perror("Can't bind to IP/port");
+		std::cerr << RED_TEXT << "ERROR (bind): Can't bind to IP/port"<< RESET_COLOR << std::endl;
 		_exit(1);
 	}
 
 	if (listen(listening, SOMAXCONN) == -1) {
-		perror("Can't listen");
+		std::cerr << RED_TEXT << "ERROR (listen): Can't listen"<< RESET_COLOR << std::endl;
 		_exit (1);
 	}
 
@@ -158,7 +163,7 @@ bool WebServer::parseConfigFile(const std::string &file) {
 	int checkEnd = 0;
 
 	if (!fileStream.is_open()) {
-		perror("Can't Open file");
+		std::cerr << RED_TEXT << "ERROR (is_open): Can't open file"<< RESET_COLOR << std::endl;
 		return false;
 	}
 	while (std::getline(fileStream, line)) {
@@ -188,7 +193,7 @@ bool WebServer::parseConfigFile(const std::string &file) {
 				_portsMap[*it].push_back(servAux);
 			}
             if (!servAux.checkConfig()) {
-				perror("Can't config server");
+				std::cerr << RED_TEXT << "ERROR (checkConfig): Can't config server"<< RESET_COLOR << std::endl;
                 fileStream.close();
                 return false;
             }
@@ -206,7 +211,7 @@ void WebServer::createNewClient(int it_listen) {
 	int client_sock = accept(it_listen, reinterpret_cast<sockaddr*>(&client), &addr_size);
 
 	if (client_sock == -1) {
-		perror("Can't accept client");
+		std::cerr << RED_TEXT << "ERROR (accept): Can't accept client"<< RESET_COLOR << std::endl;
 		return ;
 	}
 	if ((_poll_fds.size() - _listSize) < MAXCLIENTS) {
@@ -343,7 +348,6 @@ void WebServer::checkClients() {
 	}
 }
 
-
 void WebServer::initService() {
 	::initListeners(_portsMap, _poll_fds, _listeners);
 	_listSize = _listeners.size();
@@ -357,8 +361,7 @@ void WebServer::initService() {
 
 		checkServes();
 		checkClients();
-
-		usleep(10000);
+		my_usleep(10000);
 	}
 }
 
