@@ -1,7 +1,0 @@
---------------------------39ae8501a3546549
-Content-Disposition: attachment; name="file"; filename="text.txt"
-Content-Type: text/plain
-
-123
-
-abcde
